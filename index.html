@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily English">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f0f0f">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230f0f0f'/%3E%3Ctext x='90' y='115' font-size='90' text-anchor='middle' font-family='Georgia,serif' fill='%234ade80' font-style='italic'%3EE%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22Daily%20English%22%2C%22short_name%22%3A%22English%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f0f0f%22%2C%22theme_color%22%3A%22%230f0f0f%22%2C%22description%22%3A%22%E6%AF%8F%E6%97%A5%E8%8B%B1%E6%96%87%E5%96%AE%E5%AD%97%E5%AD%B8%E7%BF%92%22%7D">
+<title>Daily English</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<style>
+:root{
+  --bg:#0f0f0f;--bg2:#1a1a1a;--bg3:#242424;--bg4:#2e2e2e;
+  --text:#f0ede8;--t2:#a8a49e;--t3:#6b6760;--border:#333;--border2:#2a2a2a;
+  --green:#4ade80;--gl:rgba(74,222,128,.12);--gb:rgba(74,222,128,.2);
+  --amber:#fbbf24;--al:rgba(251,191,36,.1);--ab:rgba(251,191,36,.2);
+  --blue:#60a5fa;--bl:rgba(96,165,250,.1);
+  --red:#f87171;--rl:rgba(248,113,113,.1);
+  --serif:'Literata',Georgia,serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;
+  --r:12px;--rs:8px
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+#app{max-width:480px;margin:0 auto;padding:0 0 90px;min-height:100vh}
+
+/* TOP BAR */
+.topbar{position:sticky;top:0;z-index:200;background:var(--bg);padding:12px 16px 10px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:8px}
+.logo{font-family:var(--serif);font-size:19px;color:var(--text);flex:1;font-style:italic}
+.logo span{color:var(--green);font-style:normal;font-weight:600}
+.badge{display:flex;align-items:center;gap:4px;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:600}
+.badge-g{background:var(--gl);border:1px solid var(--gb);color:var(--green)}
+.badge-a{background:var(--al);border:1px solid var(--ab);color:var(--amber)}
+.badge-d{background:var(--bg3);border:1px solid var(--border);color:var(--t2);font-size:11px;font-weight:500}
+
+/* LEVEL BAR */
+.lvbar{display:flex;gap:6px;padding:12px 16px 0}
+.lv{flex:1;text-align:center;padding:8px 4px;border-radius:var(--r);border:1.5px solid var(--border2);background:var(--bg2);cursor:pointer;font-size:11px;color:var(--t3);font-weight:600;letter-spacing:.03em;transition:all .2s;position:relative}
+.lv .lvn{font-size:13px;margin-bottom:2px;font-family:var(--serif)}
+.lv.act-b{border-color:var(--green);background:var(--gl);color:var(--green)}
+.lv.act-i{border-color:var(--amber);background:var(--al);color:var(--amber)}
+.lv.act-a{border-color:var(--red);background:var(--rl);color:var(--red)}
+.lv.locked{opacity:.4;cursor:not-allowed}
+.lv .lock-icon{position:absolute;top:4px;right:6px;font-size:10px;opacity:.5}
+.unlock-bar{margin:8px 16px 0;background:var(--bg3);border-radius:99px;height:4px;overflow:hidden}
+.unlock-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--amber));border-radius:99px;transition:width .5s}
+.unlock-text{text-align:center;font-size:11px;color:var(--t3);padding:6px 16px 0}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--bg2);border-top:1px solid var(--border2);display:flex;max-width:480px;margin:0 auto}
+.nv{flex:1;padding:10px 0 14px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--sans)}
+.nv span{font-size:10px;color:var(--t3);font-weight:500}
+.nv.active span{color:var(--green)}
+.nv .ico{width:22px;height:22px;opacity:.3}
+.nv.active .ico{opacity:1}
+
+.screen{display:none;padding:14px 16px}.screen.active{display:block}
+
+/* DAILY BANNER */
+.dbanner{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.daybadge{background:var(--green);color:#000;border-radius:10px;padding:8px 10px;text-align:center;flex-shrink:0;min-width:52px}
+.daybadge .dn{font-family:var(--serif);font-size:22px;line-height:1;font-weight:600}
+.daybadge .dl{font-size:9px;font-weight:600;letter-spacing:.08em;margin-top:2px;opacity:.7}
+.btxt h3{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.btxt p{font-size:11px;color:var(--t3)}
+
+/* PROGRESS BAR inside banner */
+.mini-prog{height:3px;background:var(--bg4);border-radius:99px;margin-top:8px;overflow:hidden}
+.mini-fill{height:100%;background:var(--green);border-radius:99px;transition:width .4s}
+
+/* WORD CARD */
+.wcard{background:var(--bg2);border-radius:16px;border:1px solid var(--border2);margin-bottom:12px;overflow:hidden}
+.wcard-head{padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center}
+.wcount{font-size:12px;color:var(--t3);font-weight:500}
+.wtags{display:flex;gap:5px;flex-wrap:wrap}
+.wtag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--t3);border:1px solid var(--border)}
+.wcard-body{padding:4px 16px 16px;text-align:center}
+.wmain{font-family:var(--serif);font-size:38px;color:var(--text);margin-bottom:4px;font-style:italic}
+.wph{font-size:13px;color:var(--t3);margin-bottom:6px}
+.wpos-pill{display:inline-block;font-size:11px;padding:3px 10px;border-radius:99px;background:var(--bg4);color:var(--t2);margin-bottom:14px;border:1px solid var(--border)}
+.wzh{font-size:24px;font-weight:600;color:var(--text);margin-bottom:14px}
+.wex-wrap{text-align:left;border-left:3px solid var(--green);padding-left:12px;margin-bottom:6px}
+.wex{font-size:14px;color:var(--text);font-style:italic;line-height:1.6}
+.wexzh{font-size:12px;color:var(--t2);margin-top:3px}
+.wcard-foot{padding:10px 16px;border-top:1px solid var(--border2);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wbtn{background:none;border:1px solid var(--border);border-radius:99px;padding:6px 12px;font-size:12px;color:var(--t2);cursor:pointer;font-family:var(--sans);display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.wbtn:active{transform:scale(.96)}
+.wbtn.saved{background:var(--al);border-color:var(--amber);color:var(--amber)}
+.wbtn.speak{background:var(--gl);border-color:var(--gb);color:var(--green)}
+.wnavbtns{display:flex;gap:8px;justify-content:center;padding:14px 16px}
+.nbtn{flex:1;padding:11px;border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all .15s;border:none}
+.nbtn.prev{background:var(--bg3);color:var(--t2)}
+.nbtn.next{background:var(--green);color:#000}
+.nbtn:active{opacity:.8;transform:scale(.98)}
+
+/* TIPS CARDS */
+.tip-card{background:var(--bg2);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;border:1px solid var(--border2)}
+.tip-card .tclbl{font-size:10px;font-weight:600;letter-spacing:.08em;margin-bottom:6px;text-transform:uppercase}
+.tip-card.amber .tclbl{color:var(--amber)}
+.tip-card.green .tclbl{color:var(--green)}
+.tip-card p{font-size:14px;color:var(--t2);line-height:1.7}
+
+/* REVIEW SECTION */
+.review-banner{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--amber);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.review-icon{font-size:24px}
+.review-text h3{font-size:13px;font-weight:600;color:var(--amber);margin-bottom:2px}
+.review-text p{font-size:11px;color:var(--t3)}
+
+/* SAVED WORDS SCREEN */
+.saved-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.saved-h h2{font-family:var(--serif);font-size:22px;font-style:italic}
+.saved-cnt{font-size:12px;color:var(--t3);background:var(--bg3);padding:3px 9px;border-radius:99px}
+.saved-empty{text-align:center;padding:48px 20px;color:var(--t3)}
+.saved-empty .ei{font-size:48px;margin-bottom:12px}
+.saved-empty p{font-size:14px;line-height:1.7}
+.saved-list{display:flex;flex-direction:column;gap:8px}
+.si{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s}
+.si:active{background:var(--bg3)}
+.si-word{font-family:var(--serif);font-size:20px;font-style:italic;color:var(--text);flex:1}
+.si-zh{font-size:12px;color:var(--t2);margin-top:2px}
+.si-lv{font-size:10px;padding:2px 7px;border-radius:99px}
+.si-lv.b{background:var(--gl);color:var(--green)}
+.si-lv.i{background:var(--al);color:var(--amber)}
+.si-lv.a{background:var(--rl);color:var(--red)}
+.unsave{background:none;border:none;cursor:pointer;color:var(--t3);font-size:18px;padding:4px}
+.unsave:active{color:var(--red)}
+
+/* FLASHCARD REVIEW */
+.fc-wrap{perspective:1200px;margin-bottom:14px}
+.fc{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:32px 20px;text-align:center;cursor:pointer;transition:transform .5s;transform-style:preserve-3d;min-height:180px;position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.fc.flipped{transform:rotateY(180deg)}
+.fc-front,.fc-back{backface-visibility:hidden;position:absolute;width:100%;padding:20px}
+.fc-back{transform:rotateY(180deg)}
+.fc-word{font-family:var(--serif);font-size:36px;font-style:italic;color:var(--text)}
+.fc-zh{font-size:22px;font-weight:600;color:var(--green)}
+.fc-ex{font-size:13px;color:var(--t2);font-style:italic;margin-top:8px;line-height:1.6}
+.fc-hint{font-size:12px;color:var(--t3);margin-top:16px}
+.fc-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.fcbtn{padding:12px;border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+.fcbtn.know{background:var(--gl);color:var(--green);border:1px solid var(--gb)}
+.fcbtn.forgot{background:var(--rl);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.review-progress{background:var(--bg3);border-radius:var(--r);padding:14px;margin-bottom:14px;display:flex;gap:16px;justify-content:center}
+.rp-item{text-align:center}
+.rp-n{font-family:var(--serif);font-size:24px;color:var(--text)}
+.rp-l{font-size:11px;color:var(--t3);margin-top:2px}
+
+/* QUIZ */
+.qcard{background:var(--bg2);border-radius:16px;border:1px solid var(--border2);margin-bottom:12px;overflow:hidden}
+.qprog-bar{height:3px;background:var(--bg4);overflow:hidden}
+.qprog-fill{height:100%;background:var(--green);transition:width .4s}
+.qcard-inner{padding:18px}
+.qmeta{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.qscore{font-size:12px;color:var(--t3)}
+.qtype{font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600}
+.qtype.mc{background:var(--gl);color:var(--green)}
+.qtype.fill{background:var(--al);color:var(--amber)}
+.qq{font-size:16px;font-weight:600;color:var(--text);line-height:1.6;margin-bottom:16px}
+.qopts{display:flex;flex-direction:column;gap:8px}
+.qopt{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--rs);padding:13px 15px;font-size:15px;color:var(--text);cursor:pointer;font-family:var(--sans);text-align:left;line-height:1.4;transition:all .15s;width:100%}
+.qopt.ok{background:var(--gl);border-color:var(--green);color:var(--green)}
+.qopt.no{background:var(--rl);border-color:var(--red);color:var(--red)}
+.qfill-inp{width:100%;padding:13px 15px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:16px;background:var(--bg3);color:var(--text);font-family:var(--sans);margin-bottom:8px}
+.qfill-inp:focus{outline:none;border-color:var(--green)}
+.qfb{padding:12px 14px;border-radius:var(--rs);font-size:14px;line-height:1.6;margin-top:12px;display:none}
+.qfb.ok{background:var(--gl);color:var(--green);display:block}
+.qfb.no{background:var(--rl);color:var(--red);display:block}
+.qsave-btn{display:flex;align-items:center;gap:6px;margin-top:10px;padding:9px 14px;background:var(--bg3);border:1.5px solid var(--border);border-radius:99px;font-size:13px;font-weight:500;color:var(--t2);cursor:pointer;font-family:var(--sans);transition:all .15s;width:100%;justify-content:center}
+.qsave-btn:active{transform:scale(.97)}
+.qsave-btn.saved{background:var(--al);border-color:var(--ab);color:var(--amber)}
+.qnext{display:none;margin-top:12px;width:100%;padding:13px;background:var(--green);color:#000;border:none;border-radius:var(--rs);font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans)}
+.qdone{background:var(--bg3);border-radius:var(--r);padding:24px;text-align:center;border:1px solid var(--border)}
+.qdone h3{font-family:var(--serif);font-size:28px;color:var(--green);margin-bottom:8px;font-style:italic}
+.qdone p{font-size:14px;color:var(--t2);line-height:1.7}
+
+/* CHAT */
+.cscene-lbl{font-size:11px;color:var(--t3);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.cscene-name{font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:12px}
+.chints{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.hpill{font-size:12px;padding:5px 11px;background:var(--bg3);border:1px solid var(--border);border-radius:99px;cursor:pointer;color:var(--t2);font-family:var(--sans);transition:background .15s}
+.hpill:active{background:var(--bg4)}
+.chatbox{background:var(--bg2);border-radius:var(--r);border:1px solid var(--border2);padding:12px;min-height:240px;max-height:300px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:10px}
+.mw{display:flex;flex-direction:column;gap:3px}.mw.me{align-items:flex-end}.mw.ai{align-items:flex-start}
+.bubble{max-width:82%;padding:9px 13px;border-radius:14px;font-size:15px;line-height:1.5}
+.bubble.ai{background:var(--bg3);color:var(--text);border-bottom-left-radius:4px}
+.bubble.me{background:var(--green);color:#000;font-weight:500;border-bottom-right-radius:4px}
+.mzh{font-size:12px;color:var(--t3);max-width:82%;padding:0 3px}
+.mtip{font-size:12px;background:var(--al);color:var(--amber);border-radius:6px;padding:5px 9px;max-width:82%;border:1px solid var(--ab)}
+.mplay{background:none;border:none;cursor:pointer;font-size:12px;color:var(--green);padding:2px 0;font-family:var(--sans)}
+.cinbox{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden}
+.cintop{display:flex}
+.cintop input{flex:1;padding:12px 14px;border:none;font-size:15px;background:transparent;color:var(--text);font-family:var(--sans)}
+.cintop input:focus{outline:none}
+.cintop input::placeholder{color:var(--t3)}
+.sndbtn{background:var(--green);border:none;padding:12px 15px;cursor:pointer;color:#000;font-weight:600}
+.cinbot{display:flex;align-items:center;padding:7px 12px;border-top:1px solid var(--border2);gap:7px}
+.micbtn,.rcbtn{background:none;border:1px solid var(--border);border-radius:99px;padding:5px 11px;cursor:pointer;font-size:12px;color:var(--t2);font-family:var(--sans);display:flex;align-items:center;gap:4px}
+.micbtn.on{background:var(--rl);border-color:var(--red);color:var(--red)}
+.togw{display:flex;align-items:center;gap:5px;margin-left:auto;cursor:pointer}
+.togw span{font-size:12px;color:var(--t3)}
+.tog{width:28px;height:16px;border-radius:99px;background:var(--border);position:relative;flex-shrink:0;transition:background .2s}
+.tog.on{background:var(--green)}.togdot{width:12px;height:12px;border-radius:50%;background:var(--bg);position:absolute;top:2px;left:2px;transition:left .2s}.tog.on .togdot{left:14px}
+
+/* PROGRESS */
+.sr4{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.sbox{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:14px;text-align:center}
+.sn{font-family:var(--serif);font-size:30px;font-style:italic}.sl{font-size:11px;color:var(--t3);margin-top:2px;font-weight:500}
+.pcard{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.prow{margin-bottom:12px}.prow:last-child{margin-bottom:0}
+.plbl{display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:6px;font-weight:500}
+.pt{height:5px;background:var(--bg4);border-radius:99px;overflow:hidden}
+.pf{height:100%;border-radius:99px;transition:width .5s}
+.caltitle{font-size:12px;color:var(--t2);font-weight:600;letter-spacing:.04em;margin-bottom:10px;text-transform:uppercase}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cday{aspect-ratio:1;border-radius:5px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--t3)}
+.cday.done{background:var(--gl);color:var(--green);font-weight:600}.cday.today{background:var(--green);color:#000;font-weight:700}
+
+/* ACCENT TOGGLE */
+.accent-toggle{display:flex;gap:0;border-radius:99px;overflow:hidden;border:1.5px solid var(--border);background:var(--bg3);flex-shrink:0}
+.acc-btn{padding:5px 13px;font-size:12px;font-weight:600;border:none;background:transparent;color:var(--t3);cursor:pointer;font-family:var(--sans);transition:all .15s;letter-spacing:.03em}
+.acc-btn.active{background:var(--green);color:#000}
+
+/* PRONUNCIATION CHECK PANEL */
+.pron-panel{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.pron-panel-head{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border2)}
+.pron-panel-head h4{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.pron-panel-head .badge-hint{font-size:11px;color:var(--t3);background:var(--bg3);padding:3px 8px;border-radius:99px}
+.pron-body{padding:14px 16px}
+.pron-target{text-align:center;margin-bottom:14px}
+.pron-target .pt-word{font-family:var(--serif);font-size:32px;font-style:italic;color:var(--text);margin-bottom:4px}
+.pron-target .pt-ph{font-size:14px;color:var(--t3);margin-bottom:8px}
+.pron-steps{display:flex;gap:8px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
+.pron-step-btn{padding:9px 16px;border-radius:99px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);display:flex;align-items:center;gap:6px;transition:all .15s}
+.pron-step-btn:active{transform:scale(.96)}
+.psb-listen{background:var(--gl);color:var(--green);border:1.5px solid var(--gb)}
+.psb-record{background:var(--bg3);color:var(--t2);border:1.5px solid var(--border)}
+.psb-record.recording{background:var(--rl);color:var(--red);border-color:rgba(248,113,113,.4);animation:pulse .8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+/* SCORE DISPLAY */
+.pron-score-wrap{display:none;text-align:center;padding:16px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border)}
+.pron-score-wrap.show{display:block}
+.score-ring-wrap{position:relative;width:90px;height:90px;margin:0 auto 12px}
+.score-ring-wrap svg{transform:rotate(-90deg)}
+.score-ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.score-big{font-family:var(--serif);font-size:28px;font-weight:600;line-height:1}
+.score-label{font-size:10px;font-weight:600;letter-spacing:.06em;margin-top:2px;text-transform:uppercase}
+.heard-text{font-size:13px;color:var(--t2);margin-bottom:8px}
+.heard-text span{color:var(--text);font-weight:600}
+.syllable-row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+.syl{padding:5px 10px;border-radius:var(--rs);font-size:13px;font-weight:600}
+.syl.good{background:var(--gl);color:var(--green);border:1px solid var(--gb)}
+.syl.ok{background:var(--al);color:var(--amber);border:1px solid var(--ab)}
+.syl.bad{background:var(--rl);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.pron-feedback-msg{font-size:14px;line-height:1.7;color:var(--t2);margin-bottom:10px}
+.pron-tips-list{text-align:left;font-size:13px;color:var(--t2);line-height:1.8}
+.pron-tips-list li{list-style:none;padding-left:0;margin-bottom:4px}
+.pron-try-again{width:100%;padding:10px;background:transparent;border:1.5px solid var(--border);border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;color:var(--t2);font-family:var(--sans);margin-top:8px}
+
+/* TOAST */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--bg3);color:var(--text);padding:9px 18px;border-radius:99px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap;border:1px solid var(--border)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.green{background:var(--gl);border-color:var(--gb);color:var(--green)}
+.toast.amber{background:var(--al);border-color:var(--ab);color:var(--amber)}
+
+/* SECTION TITLES */
+.sectitle{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin:16px 0 10px}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="topbar">
+  <div class="logo"><em>Daily</em> <span>English</span></div>
+  <div class="accent-toggle">
+    <button class="acc-btn active" id="acc-us" onclick="setAccent('us')">🇺🇸 US</button>
+    <button class="acc-btn" id="acc-uk" onclick="setAccent('uk')">🇬🇧 UK</button>
+  </div>
+  <div class="badge badge-d" id="top-day">Day 1</div>
+  <div class="badge badge-a">⭐ <span id="xp-num">0</span></div>
+</div>
+<div class="lvbar">
+  <div class="lv act-b" id="lv-b" onclick="setLv('b')">
+    <div class="lvn">初級</div>BEGINNER
+  </div>
+  <div class="lv locked" id="lv-i" onclick="setLv('i')">
+    <div class="lock-icon">🔒</div>
+    <div class="lvn">中級</div>INTERMEDIATE
+  </div>
+  <div class="lv locked" id="lv-a" onclick="setLv('a')">
+    <div class="lock-icon">🔒</div>
+    <div class="lvn">高級</div>ADVANCED
+  </div>
+</div>
+<div class="unlock-bar"><div class="unlock-fill" id="unlock-fill" style="width:0%"></div></div>
+<div class="unlock-text" id="unlock-text">初級進度 0/200天 → 解鎖中級</div>
+
+<!-- VOCAB -->
+<div class="screen active" id="screen-vocab">
+  <br>
+  <div class="dbanner">
+    <div class="daybadge"><div class="dn" id="bd-day">1</div><div class="dl">TODAY</div></div>
+    <div class="btxt" style="flex:1">
+      <h3 id="bd-title">今日單字</h3>
+      <p id="bd-sub">每天15個，200天學完初級</p>
+      <div class="mini-prog"><div class="mini-fill" id="bd-prog" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div class="wcard">
+    <div class="wcard-head">
+      <div class="wcount"><span id="widx">1</span>/<span id="wtot">15</span></div>
+      <div class="wtags" id="wtags"></div>
+    </div>
+    <div class="wcard-body">
+      <div class="wmain" id="wword"></div>
+      <div class="wph" id="wph"></div>
+      <div class="wpos-pill" id="wpos"></div>
+      <div class="wzh" id="wzh"></div>
+      <div class="wex-wrap">
+        <div class="wex" id="wex"></div>
+        <div class="wexzh" id="wexzh"></div>
+      </div>
+    </div>
+    <div class="wcard-foot">
+      <button class="wbtn speak" onclick="speakWord()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>發音
+      </button>
+      <button class="wbtn" id="savebtn" onclick="toggleSave()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        <span id="savetxt">儲存</span>
+      </button>
+    </div>
+  </div>
+  <div class="wnavbtns">
+    <button class="nbtn prev" onclick="prevW()">← 上一個</button>
+    <button class="nbtn next" onclick="nextW()">下一個 →</button>
+  </div>
+  <div class="tip-card amber" id="tipc">
+    <div class="tclbl">記憶技巧</div>
+    <p id="wtip"></p>
+  </div>
+
+  <!-- PRONUNCIATION CHECK -->
+  <div class="pron-panel">
+    <div class="pron-panel-head">
+      <h4>🎤 發音練習</h4>
+      <span class="badge-hint">跟讀後系統評分</span>
+    </div>
+    <div class="pron-body">
+      <div class="pron-target">
+        <div class="pt-word" id="pron-word"></div>
+        <div class="pt-ph" id="pron-ph"></div>
+      </div>
+      <div class="pron-steps">
+        <button class="pron-step-btn psb-listen" onclick="pronListen()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          ① 先聽範例
+        </button>
+        <button class="pron-step-btn psb-record" id="pron-rec-btn" onclick="pronRecord()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          <span id="pron-rec-txt">② 開始跟讀</span>
+        </button>
+      </div>
+      <div class="pron-score-wrap" id="pron-score-wrap">
+        <div class="score-ring-wrap">
+          <svg width="90" height="90" viewBox="0 0 90 90">
+            <circle cx="45" cy="45" r="38" fill="none" stroke="var(--bg4)" stroke-width="8"/>
+            <circle cx="45" cy="45" r="38" fill="none" stroke="var(--green)" stroke-width="8"
+              stroke-dasharray="239" stroke-dashoffset="239"
+              stroke-linecap="round" id="score-circle" style="transition:stroke-dashoffset .8s ease"/>
+          </svg>
+          <div class="score-ring-center">
+            <div class="score-big" id="score-num">0</div>
+            <div class="score-label" id="score-lbl">分</div>
+          </div>
+        </div>
+        <div class="heard-text">系統聽到：「<span id="heard-span">—</span>」</div>
+        <div class="syllable-row" id="syl-row"></div>
+        <div class="pron-feedback-msg" id="pron-msg"></div>
+        <ul class="pron-tips-list" id="pron-tips"></ul>
+        <button class="pron-try-again" onclick="pronReset()">↩ 再試一次</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW SECTION (shows words from 3 days ago) -->
+  <div id="review-section" style="display:none">
+    <div class="review-banner">
+      <div class="review-icon">🔁</div>
+      <div class="review-text">
+        <h3>今日複習</h3>
+        <p id="review-desc">複習 3 天前的單字，強化記憶</p>
+      </div>
+    </div>
+    <div class="wcard" id="review-card">
+      <div class="wcard-head">
+        <div class="wcount">複習 <span id="ridx">1</span>/<span id="rtot">15</span></div>
+        <div class="wtags"><span class="wtag" style="background:var(--al);color:var(--amber)">複習</span></div>
+      </div>
+      <div class="wcard-body">
+        <div class="wmain" id="rword"></div>
+        <div class="wph" id="rph"></div>
+        <div class="wpos-pill" id="rpos"></div>
+        <div class="wzh" id="rzh"></div>
+        <div class="wex-wrap"><div class="wex" id="rex"></div><div class="wexzh" id="rexzh"></div></div>
+      </div>
+      <div class="wcard-foot">
+        <button class="wbtn speak" onclick="speakReview()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>發音
+        </button>
+        <button class="wbtn" id="rsavebtn" onclick="toggleSaveReview()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span id="rsavetxt">儲存</span>
+        </button>
+      </div>
+    </div>
+    <div class="wnavbtns">
+      <button class="nbtn prev" onclick="prevR()">← 上一個</button>
+      <button class="nbtn next" style="background:var(--amber);color:#000" onclick="nextR()">下一個 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVED WORDS -->
+<div class="screen" id="screen-saved">
+  <br>
+  <div class="saved-h">
+    <h2>我的單字本</h2>
+    <div class="saved-cnt"><span id="saved-count">0</span> 個</div>
+  </div>
+  <div id="flashcard-area"></div>
+  <div id="saved-list-area"></div>
+</div>
+
+<!-- QUIZ -->
+<div class="screen" id="screen-quiz">
+  <br>
+  <div class="dbanner">
+    <div class="daybadge" style="background:var(--amber)"><div class="dn" id="qbd-day">1</div><div class="dl">QUIZ</div></div>
+    <div class="btxt">
+      <h3 id="qbd-title">今日測驗</h3>
+      <p id="qbd-sub">10 題，含今日單字 + 複習</p>
+    </div>
+  </div>
+  <div class="qcard" id="quiz-card">
+    <div class="qprog-bar"><div class="qprog-fill" id="q-prog" style="width:0%"></div></div>
+    <div class="qcard-inner">
+      <div class="qmeta">
+        <div class="qscore">得分 <strong id="q-score">0</strong>/<span id="q-ans">0</span>　第 <span id="q-num">1</span>/10 題</div>
+        <div class="qtype mc" id="q-type">選擇題</div>
+      </div>
+      <div class="qq" id="q-q"></div>
+      <div id="q-body"></div>
+      <div class="qfb" id="q-fb"></div>
+      <button class="qnext" id="q-next" onclick="nextQ()">下一題 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div class="screen" id="screen-chat">
+  <br>
+  <div class="cscene-lbl">今日練習情境</div>
+  <div class="cscene-name" id="chat-scene"></div>
+  <div class="chints" id="chat-hints"></div>
+  <div class="chatbox" id="chat-box"></div>
+  <div class="cinbox">
+    <div class="cintop">
+      <input type="text" id="chat-inp" placeholder="用英文輸入…" onkeydown="if(event.key==='Enter')sendMsg()">
+      <button class="sndbtn" onclick="sendMsg()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div class="cinbot">
+      <button class="micbtn" id="mic-btn" onclick="toggleMic()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg> 語音
+      </button>
+      <button class="rcbtn" onclick="resetChat()">換情境</button>
+      <div class="togw" onclick="toggleZh()">
+        <div class="tog on" id="zh-tog"><div class="togdot"></div></div>
+        <span>中文</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div class="screen" id="screen-prog">
+  <br>
+  <div class="sr4">
+    <div class="sbox"><div class="sn" id="st-words">0</div><div class="sl">學習單字</div></div>
+    <div class="sbox"><div class="sn" id="st-saved">0</div><div class="sl">已儲存</div></div>
+    <div class="sbox"><div class="sn" id="st-correct">0</div><div class="sl">答對題數</div></div>
+    <div class="sbox"><div class="sn" id="st-streak">1</div><div class="sl">連續天數</div></div>
+  </div>
+  <div class="pcard">
+    <div class="prow"><div class="plbl"><span>今日單字</span><span id="pp-v">0%</span></div><div class="pt"><div class="pf" id="pf-v" style="width:0%;background:var(--green)"></div></div></div>
+    <div class="prow"><div class="plbl"><span>測驗正確率</span><span id="pp-q">0%</span></div><div class="pt"><div class="pf" id="pf-q" style="width:0%;background:var(--amber)"></div></div></div>
+    <div class="prow"><div class="plbl"><span>初級解鎖進度</span><span id="pp-u">0%</span></div><div class="pt"><div class="pf" id="pf-u" style="width:0%;background:var(--blue)"></div></div></div>
+  </div>
+  <div class="pcard"><div class="caltitle">本月學習日曆</div><div class="calgrid" id="cal-grid"></div></div>
+
+  <!-- SETTINGS -->
+  <div class="pcard" style="margin-top:10px">
+    <div class="caltitle">⚙️ 學習設定</div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;color:var(--t2);font-weight:600;margin-bottom:6px">Day 計算起始日</div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:8px">目前 Day 從 2025-01-01 開始計算。你可以設定自己的開始日期，讓 Day 1 = 今天。</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="date" id="start-date-input" style="flex:1;padding:9px 12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--sans);font-size:14px;min-width:140px">
+        <button onclick="setStartDate()" style="padding:9px 16px;background:var(--green);color:#000;border:none;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap">設定開始日</button>
+      </div>
+      <div style="font-size:12px;color:var(--green);margin-top:6px" id="start-date-status"></div>
+    </div>
+
+    <div style="border-top:1px solid var(--border2);padding-top:14px;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--t2);font-weight:600;margin-bottom:6px">解鎖等級</div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:8px">手動設定已完成的天數，解鎖中級或高級。</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="unlockLevel('i')" style="flex:1;padding:9px 12px;background:var(--al);border:1px solid var(--ab);color:var(--amber);border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">🔓 解鎖中級</button>
+        <button onclick="unlockLevel('a')" style="flex:1;padding:9px 12px;background:var(--rl);border:1px solid rgba(248,113,113,.3);color:var(--red);border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">🔓 解鎖高級</button>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border2);padding-top:14px">
+      <div style="font-size:13px;color:var(--t2);font-weight:600;margin-bottom:6px">重置資料</div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:10px">清除所有學習記錄（XP、答題、對話紀錄），但保留儲存的單字本。</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="resetStats()" style="flex:1;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);color:var(--t2);border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--sans)">重置學習紀錄</button>
+        <button onclick="resetAll()" style="flex:1;padding:9px 12px;background:var(--bg3);border:1px solid var(--red);color:var(--red);border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--sans)">完全重置（含單字本）</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- BOTTOM NAV (5 tabs) -->
+<div class="bnav">
+  <button class="nv active" id="nav-vocab" onclick="goScreen('vocab')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    <span>單字</span>
+  </button>
+  <button class="nv" id="nav-saved" onclick="goScreen('saved')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    <span>單字本</span>
+  </button>
+  <button class="nv" id="nav-quiz" onclick="goScreen('quiz')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span>測驗</span>
+  </button>
+  <button class="nv" id="nav-chat" onclick="goScreen('chat')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span>對話</span>
+  </button>
+  <button class="nv" id="nav-prog" onclick="goScreen('prog')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>進度</span>
+  </button>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ═══════════════════════════════════════════════════════════
+// WORD BANK  – 364 beginner words (from 2000-word curriculum)
+// Format: [en, phonetic, pos, zh, example, exZh, tip]
+// ═══════════════════════════════════════════════════════════
+const BW=[
+["able","ˈeɪbl","adj.","有能力的","She is able to speak three languages.","她能說三種語言。","be able to = 能夠（比 can 更正式）。Able-bodied = 身體健全的。"],
+["about","əˈbaʊt","prep./adv.","大約；關於","This book is about space and planets.","這本書是關於太空和行星的。","About = 關於/大約。What about...? = ...怎麼樣？How about...? = ...如何？"],
+["above","əˈbʌv","adv./prep.","在上方","The plane flew above the clouds.","飛機在雲層上方飛行。","Above = 在...上方（不接觸）。Over = 在...上方（可接觸）。"],
+["abroad","əˈbrɔːd","adv.","在國外","She studied abroad for two years.","她在國外讀書兩年。","Go abroad = 出國。Study abroad = 出國留學。Live abroad = 住在國外。"],
+["absent","ˈæbsənt","adj.","缺席的","Three students were absent today.","今天有三位學生缺席。","Be absent from = 缺席。Absent-minded = 心不在焉的。"],
+["accept","əkˈsɛpt","v.","接受","She accepted the job offer.","她接受了那份工作機會。","Accept vs receive：Accept = 主動接受，Receive = 收到。"],
+["accident","ˈæksɪdənt","n.","意外","He had a car accident last week.","他上週發生了車禍。","By accident = 意外地（偶然）。Traffic accident = 交通事故。"],
+["across","əˈkrɒs","prep.","在…對面；穿越","The shop is across the street.","那家店在街道對面。","Across from = 在...對面。Walk across = 穿越走過。"],
+["act","ækt","n./v.","行為；行動；表演","She acted in the school play.","她在學校戲劇中表演。","Act on = 根據...行動。Act of kindness = 善舉。In the act = 當場。"],
+["action","ˈækʃən","n.","活動；行動","We need to take action immediately.","我們需要立即採取行動。","Take action = 採取行動。Action movie = 動作片。Out of action = 停擺。"],
+["active","ˈæktɪv","adj.","積極的","He is very active in sports.","他在運動方面非常積極。","Actively = 積極地。Activity = 活動。Inactive = 不活躍的。"],
+["activity","ækˈtɪvɪti","n.","活動","Swimming is a great outdoor activity.","游泳是很好的戶外活動。","Outdoor/indoor activity = 戶外/室內活動。Daily activities = 日常活動。"],
+["actor","ˈæktər","n.","男演員","He is a famous Hollywood actor.","他是著名的好萊塢男演員。","Actress = 女演員。Voice actor = 配音員。Child actor = 童星。"],
+["actually","ˈæktʃuəli","adv.","確實；實際上","I actually enjoy studying English.","我確實喜歡學英語。","Actually 常用於糾正誤解。Actually... = 其實...（表達驚訝或糾正）。"],
+["add","æd","v.","增加；加","Add some sugar to the coffee.","在咖啡裡加些糖。","Add up = 加總。In addition = 此外。Addition = 加法。"],
+["address","ˈædrɛs","n.","地址","Can you give me your home address?","你能給我你的住家地址嗎？","Email address = 電子郵件地址。Address a problem = 處理問題。"],
+["admire","ədˈmaɪər","v.","欽佩；欣賞","I really admire her courage.","我非常欽佩她的勇氣。","Admiration = 欽佩（名詞）。Admirable = 值得欽佩的。"],
+["adult","ˈædʌlt","n.","成人","This movie is for adults only.","這部電影僅限成人觀看。","Adult education = 成人教育。Young adult = 青年成人。"],
+["advertisement","ədˈvɜːrtɪsmənt","n.","廣告","I saw a funny advertisement on TV.","我在電視上看到一個有趣的廣告。","Ad = 廣告（縮寫）。Advertise = 做廣告。Billboard = 廣告看板。"],
+["advice","ədˈvaɪs","n.","建議","She gave me good advice about my career.","她給了我關於職業的好建議。","注意：advice（不可數）。Give advice = 給建議。Take advice = 接受建議。"],
+["advise","ədˈvaɪz","v.","建議","My doctor advised me to exercise more.","我的醫生建議我多運動。","Adviser/advisor = 顧問。Advise someone to do = 建議某人做。"],
+["affect","əˈfɛkt","v.","影響","Stress can affect your health.","壓力會影響你的健康。","Effect（名詞）= 影響。Affect（動詞）= 影響。Affective = 情感的。"],
+["afraid","əˈfreɪd","adj.","害怕的","She was afraid of the dark.","她害怕黑暗。","Be afraid of = 害怕...。I'm afraid... = 恐怕...（禮貌表達壞消息）。"],
+["afternoon","ˌæftərˈnuːn","n.","下午","Good afternoon! How are you?","下午好！你好嗎？","This afternoon = 今天下午。In the afternoon = 在下午。"],
+["again","əˈɡɛn","adv.","再度；又","Can you say that again, please?","可以請你再說一遍嗎？","Again and again = 一再。Once again = 再一次。Never again = 再也不。"],
+["against","əˈɡɛnst","prep.","靠著；反對","He leaned against the wall.","他靠在牆上。","Against = 反對/靠著。Vote against = 投票反對。"],
+["age","eɪdʒ","n.","年齡","What age is your little sister?","你小妹妹幾歲了？","Age group = 年齡群組。Middle age = 中年。Age well = 老得優雅。"],
+["ago","əˈɡoʊ","adv.","...之前","I moved here three years ago.","我三年前搬來這裡。","注意：ago 搭配一般過去式。Long ago = 很久以前。"],
+["agree","əˈɡriː","v.","同意","I totally agree with your opinion.","我完全同意你的意見。","Agree with = 同意某人/某說法。Agreement = 協議。Disagree = 不同意。"],
+["ahead","əˈhɛd","adv.","向前；提前","Go straight ahead for two blocks.","往前直走兩個街區。","Ahead of time = 提前。Look ahead = 往前看。Go ahead! = 請便！"],
+["aim","eɪm","n.","目標；目的","My aim is to speak fluent English.","我的目標是說流利的英語。","Aim at = 瞄準。Aimless = 漫無目的的。Take aim = 瞄準。"],
+["air","ɛr","n.","空氣","Open the window for some fresh air.","打開窗戶讓新鮮空氣進來。","Fresh air = 新鮮空氣。Air pollution = 空氣污染。Air conditioner = 冷氣。"],
+["airplane","ˈɛrpleɪn","n.","飛機","I took an airplane to Japan.","我搭飛機去日本。","Plane = 飛機（縮寫）。Airplane ticket = 機票。Take off/land = 起飛/降落。"],
+["airport","ˈɛrpɔːrt","n.","機場","We arrived at the airport two hours early.","我們提早兩小時到達機場。","International airport = 國際機場。Airport security = 機場安全檢查。"],
+["alarm","əˈlɑːrm","n.","警報器；鬧鐘","I set my alarm for 7am.","我把鬧鐘設定在早上7點。","Alarm clock = 鬧鐘。Fire alarm = 火災警報。Set an alarm = 設定鬧鐘。"],
+["album","ˈælbəm","n.","相簿；專輯","She showed me her photo album.","她給我看她的相簿。","Photo album = 相簿。Music album = 音樂專輯。"],
+["alike","əˈlaɪk","adv.","相似地","The twins look very much alike.","這對雙胞胎看起來非常相似。","Look alike = 看起來相似。Think alike = 想法相似。"],
+["alive","əˈlaɪv","adj.","活著的","He was still alive when they found him.","他們找到他時他還活著。","Keep alive = 保持活著。Stay alive = 存活。Alive and well = 健在。"],
+["allow","əˈlaʊ","v.","允許","No smoking is allowed here.","這裡不允許吸煙。","Allow someone to do = 允許某人做。Not allowed = 不被允許。"],
+["almost","ˈɔːlmoʊst","adv.","幾乎","I've almost finished my homework.","我幾乎完成了我的作業。","Almost always = 幾乎總是。Almost never = 幾乎不。"],
+["alone","əˈloʊn","adv.","獨自地","She lives alone in a small apartment.","她獨自住在一個小公寓裡。","Leave alone = 讓...獨處。All alone = 完全獨自。"],
+["along","əˈlɔːŋ","prep.","沿著","Walk along the river for ten minutes.","沿著河邊走十分鐘。","Come along = 一起來。Get along = 相處融洽。Along with = 連同。"],
+["already","ɔːlˈrɛdi","adv.","已經","I've already eaten breakfast today.","我今天已經吃過早餐了。","Already 用於現在完成式，表示驚訝。Are you done already? = 你這麼快就好了？"],
+["also","ˈɔːlsoʊ","adv.","也；此外","She speaks English and also French.","她說英語，也說法語。","Also 通常放在主詞後。Too 放在句尾。As well = 也（放在句尾）。"],
+["altogether","ˌɔːltəˈɡɛðər","adv.","總共；完全","That comes to fifty dollars altogether.","總共是50元。","Altogether different = 完全不同。Not altogether = 不完全。"],
+["always","ˈɔːlweɪz","adv.","總是","He always arrives on time.","他總是準時到達。","Always 表示習慣/不變的事實。Almost always = 幾乎總是。"],
+["ambulance","ˈæmbjələns","n.","救護車","Call an ambulance! Someone is hurt.","叫救護車！有人受傷了。","Call an ambulance = 叫救護車。Ambulance driver = 救護車駕駛員。"],
+["among","əˈmʌŋ","prep.","在...之間（三者以上）","He is the tallest among his friends.","他在朋友中是最高的。","Among = 在三者以上之間。Between = 在兩者之間。"],
+["ancient","ˈeɪnʃənt","adj.","古代的","The ancient temple is very beautiful.","這座古代寺廟非常美麗。","Ancient history = 古代歷史。Ancient Rome = 古羅馬。"],
+["angry","ˈæŋɡri","adj.","生氣的","Don't be angry with me. I'm sorry.","別對我生氣，我很抱歉。","Be angry at/with = 對...生氣。Angry about = 因...生氣。"],
+["animal","ˈænɪməl","n.","動物","My favorite animal is the panda.","我最喜歡的動物是熊貓。","Wild animal = 野生動物。Pet = 寵物。Animal lover = 動物愛好者。"],
+["answer","ˈænsər","n./v.","答案；回答","Please answer the question.","請回答這個問題。","Answer the phone = 接電話。There's no easy answer = 沒有簡單答案。"],
+["apartment","əˈpɑːrtmənt","n.","公寓","I live in a small apartment downtown.","我住在市中心的小公寓。","Apartment building = 公寓大樓。Studio apartment = 套房。"],
+["apologize","əˈpɒlədʒaɪz","v.","道歉","I apologize for being late.","我為遲到道歉。","Apologize to someone for something = 為某事向某人道歉。Apology = 道歉。"],
+["appear","əˈpɪər","v.","出現；似乎","A rainbow appeared after the rain.","雨後出現了彩虹。","Appear to be = 似乎是。Appearance = 外表。Disappear = 消失。"],
+["appreciate","əˈpriːʃieɪt","v.","感謝；欣賞","I really appreciate your help.","我真的很感謝你的幫助。","比 thank you 更正式。Appreciation = 感謝。Appreciate = 欣賞藝術。"],
+["area","ˈɛriə","n.","地區；面積","This is a very safe area to live in.","這是一個非常安全的居住地區。","Area code = 區號。Residential area = 住宅區。In the area = 在附近。"],
+["argue","ˈɑːrɡjuː","v.","爭論","They always argue about money.","他們總是為錢爭論。","Argue with = 與...爭論。Argue about = 為...爭論。Argument = 爭論。"],
+["arrange","əˈreɪndʒ","v.","安排","Can you arrange a meeting for us?","你能為我們安排一次會議嗎？","Arrange = 安排。Arrangement = 安排（名詞）。Flower arrangement = 插花。"],
+["arrive","əˈraɪv","v.","到達","What time did you arrive at the station?","你幾點到達車站的？","Arrive at = 到達（小地方）。Arrive in = 到達（大城市）。"],
+["art","ɑːrt","n.","藝術","She is talented in art and music.","她在藝術和音樂方面很有天賦。","Art gallery = 畫廊。Work of art = 藝術作品。Street art = 街頭藝術。"],
+["ask","æsk","v.","詢問；要求","Can I ask you a question?","我可以問你一個問題嗎？","Ask for = 要求。Ask about = 詢問。Ask someone to do = 要求某人做。"],
+["attention","əˈtɛnʃən","n.","注意力","Pay attention to what I'm saying!","注意聽我說的話！","Pay attention = 注意。Attention span = 注意力持續時間。"],
+["baby","ˈbeɪbi","n.","嬰兒","The baby is sleeping quietly.","嬰兒在安靜地睡覺。","Baby shower = 迎嬰派對。Baby-sit = 照顧小孩。Cry like a baby = 嚎啕大哭。"],
+["back","bæk","n./adv.","背部；後面；回去","My back hurts after sitting all day.","坐了一整天後我的背很痛。","Back up = 備份/後退。Back to back = 背靠背/連續。Come back = 回來。"],
+["bad","bæd","adj.","壞的","I had a really bad day today.","我今天過得非常糟糕。","Go bad = 腐壞。Not bad = 還不錯。Badly = 非常（副詞）。Too bad = 太糟了。"],
+["bag","bæɡ","n.","袋子","I need a bigger bag for all my things.","我需要一個更大的袋子裝我所有的東西。","Handbag = 手提包。Backpack = 背包。Plastic bag = 塑膠袋。"],
+["ball","bɔːl","n.","球","The children are playing with a ball.","孩子們在玩球。","Ball game = 球賽。On the ball = 機靈。Have a ball = 玩得很開心。"],
+["banana","bəˈnænə","n.","香蕉","I eat a banana every morning.","我每天早上吃一根香蕉。","Banana peel = 香蕉皮。Go bananas = 發瘋（口語）。"],
+["bank","bæŋk","n.","銀行；河岸","I need to go to the bank today.","我今天需要去銀行。","Bank account = 銀行帳戶。River bank = 河岸。Piggy bank = 存錢筒。"],
+["bath","bæθ","n.","沐浴","She takes a bath every night.","她每晚洗澡。","Take a bath = 洗澡（泡澡）。Bath towel = 浴巾。Bathroom = 浴室。"],
+["bathroom","ˈbæθruːm","n.","浴室；廁所","Excuse me, where is the bathroom?","打擾一下，廁所在哪裡？","Go to the bathroom = 去廁所。Bathroom break = 廁所休息時間。"],
+["beach","biːtʃ","n.","沙灘","We spent the day at the beach.","我們在沙灘度過了一天。","Beach volleyball = 沙灘排球。Sandy beach = 沙灘。Go to the beach = 去海灘。"],
+["beautiful","ˈbjuːtɪfəl","adj.","美麗的","What a beautiful sunset!","多麼美麗的日落啊！","Beauty = 美（名詞）。Beautifully = 美麗地。Beauty is in the eye of the beholder."],
+["because","bɪˈkɒz","conj.","因為","I stayed home because it was raining.","因為下雨，我待在家裡。","Because of = 因為（後接名詞）。Because = 因為（後接子句）。"],
+["bed","bɛd","n.","床","I go to bed at 10pm every night.","我每晚10點上床睡覺。","Go to bed = 上床睡覺。Make the bed = 整理床鋪。Bed and breakfast = 民宿。"],
+["begin","bɪˈɡɪn","v.","開始","Let's begin the lesson now.","讓我們現在開始上課。","Begin with = 從...開始。To begin with = 首先。Beginning = 開始（名詞）。"],
+["believe","bɪˈliːv","v.","相信","I believe you can do it!","我相信你能做到！","Believe in = 相信/信仰。Believable = 可信的。Unbelievable = 難以置信的。"],
+["big","bɪɡ","adj.","大的","That is a really big building!","那是一棟真的很大的建築物！","Big deal = 大事。Think big = 有大志。Big brother = 大哥/老大哥。"],
+["bird","bɜːrd","n.","鳥","A bird is singing outside my window.","有一隻鳥在我窗外唱歌。","Early bird = 早起的人。Bird's eye view = 鳥瞰圖。Free as a bird = 無拘無束。"],
+["birthday","ˈbɜːrθdeɪ","n.","生日","Happy birthday! How old are you today?","生日快樂！你今天幾歲了？","Birthday cake = 生日蛋糕。Birthday party = 生日派對。"],
+["black","blæk","adj.","黑色的","I love black coffee in the morning.","我喜歡早上喝黑咖啡。","Black market = 黑市。Black and white = 黑白/非黑即白。In black = 穿黑衣。"],
+["blue","bluː","adj.","藍色的","The sky is a beautiful shade of blue.","天空是美麗的藍色。","Feel blue = 感到憂鬱。Out of the blue = 突然。Blue-collar = 藍領。"],
+["boat","boʊt","n.","船","We took a small boat to the island.","我們搭小船去那個島。","Rowing boat = 划槳小船。By boat = 乘船。Boat trip = 乘船遊覽。"],
+["book","bʊk","n./v.","書；預訂","I read a book every week.","我每週讀一本書。","Book a room = 訂房。Textbook = 教科書。Bookstore = 書店。"],
+["bored","bɔːrd","adj.","無聊的","I'm so bored. Let's do something fun!","我好無聊，我們做些有趣的事吧！","Boring = 無聊的（形容事物）。Boredom = 無聊感。I'm dying of boredom."],
+["borrow","ˈbɒroʊ","v.","借（入）","Can I borrow your pen for a moment?","我可以借一下你的筆嗎？","Borrow from = 向...借。Lend to = 借給...。Borrow vs lend：borrow=借入，lend=借出。"],
+["bread","brɛd","n.","麵包","Could I have some bread and butter?","可以給我一些麵包和奶油嗎？","Toast = 吐司。Slice of bread = 一片麵包。Breadwinner = 養家活口的人。"],
+["break","breɪk","v./n.","弄壞；休息","Take a break! You've been working hard.","休息一下！你一直在努力工作。","Break down = 分解/故障。Break up = 分手。Take a break = 休息一下。"],
+["bring","brɪŋ","v.","帶來","Don't forget to bring your umbrella.","別忘了帶你的雨傘。","Bring back = 帶回來。Bring up = 撫養/提起話題。"],
+["brother","ˈbrʌðər","n.","兄弟","My older brother is a doctor.","我的哥哥是一位醫生。","Big brother = 哥哥。Little brother = 弟弟。Brotherhood = 兄弟情誼。"],
+["busy","ˈbɪzi","adj.","忙碌的","I've been very busy this week.","我這週非常忙碌。","Busy schedule = 繁忙的行程。As busy as a bee = 忙碌如蜜蜂。"],
+["buy","baɪ","v.","買","I want to buy a birthday gift for my friend.","我想為朋友買一份生日禮物。","Buy online = 網購。Buy and sell = 買賣。"],
+["camera","ˈkæmərə","n.","照相機","I bought a new camera for my trip.","我為旅行買了一台新相機。","Take a photo with a camera. Digital camera = 數位相機。"],
+["cancel","ˈkænsəl","v.","取消","The concert was cancelled due to rain.","音樂會因下雨而取消了。","Cancel a reservation = 取消預訂。Cancellation = 取消（名詞）。"],
+["careful","ˈkɛrfəl","adj.","小心的","Be careful when crossing the street.","過馬路時要小心。","Carefully = 小心地。Take care = 注意。Careless = 粗心的（反義）。"],
+["carry","ˈkæri","v.","攜帶；運送","Can you carry this heavy box for me?","你能幫我拿這個重箱子嗎？","Carry on = 繼續。Carry out = 執行。"],
+["catch","kætʃ","v.","追捕；接住","Can you catch the ball?","你能接住球嗎？","Catch a cold = 感冒。Catch up = 趕上。Catch someone off guard = 出其不意。"],
+["celebrate","ˈsɛlɪbreɪt","v.","慶祝","Let's celebrate your birthday!","讓我們慶祝你的生日！","Celebration = 慶祝（名詞）。Celebrate with = 與...一起慶祝。"],
+["change","tʃeɪndʒ","v./n.","改變；零錢","Things change over time.","隨著時間的推移，事情會改變。","Change mind = 改變主意。Small change = 零錢。Change for the better = 好轉。"],
+["cheap","tʃiːp","adj.","便宜的","This restaurant is cheap and delicious.","這家餐廳便宜又美味。","Cheap vs inexpensive：cheap 有時含負面意思。Cheapskate = 吝嗇鬼。"],
+["check","tʃɛk","v.","檢查","Please check your answers before submitting.","提交前請檢查你的答案。","Check in = 辦理入住。Check out = 退房/查看。Check mark = 勾號。"],
+["child","tʃaɪld","n.","小孩","The child is playing in the garden.","小孩在花園裡玩耍。","Children = 複數。Only child = 獨生子女。Childhood = 童年。"],
+["choose","tʃuːz","v.","選擇","It's hard to choose between the two.","在兩者之間做選擇很難。","Choose from = 從...中選擇。Choice = 選擇（名詞）。"],
+["city","ˈsɪti","n.","城市","I love living in a big city.","我喜歡住在大城市裡。","City center = 市中心。City life = 城市生活。Inner city = 市區內部。"],
+["class","klæs","n.","班級；課","Our English class starts at 9am.","我們的英文課早上9點開始。","Classroom = 教室。Classmate = 同學。Take a class = 上課。"],
+["clean","kliːn","adj./v.","乾淨的；清潔","Please clean your room today.","請今天打掃你的房間。","Keep clean = 保持乾淨。Spring cleaning = 春季大掃除。"],
+["clear","klɪər","adj.","清楚的；晴朗的","The sky is clear today.","今天天空晴朗。","Clear up = 放晴/整理。Make it clear = 說清楚。Crystal clear = 非常清楚。"],
+["clever","ˈklɛvər","adj.","聰明的","She is a very clever student.","她是一個非常聰明的學生。","Smart = 聰明的（更口語）。Intelligent = 聰明的（更正式）。"],
+["climb","klaɪm","v.","攀爬","We climbed the mountain last weekend.","我們上週末爬山了。","Climb up = 往上爬。Rock climbing = 攀岩。Mountain climbing = 登山。"],
+["clothes","kloʊðz","n.","衣服","She bought new clothes for the party.","她為派對買了新衣服。","Clothing = 衣物（總稱）。Put on/take off clothes = 穿/脫衣服。"],
+["cloud","klaʊd","n.","雲","Dark clouds filled the sky.","黑雲佈滿了天空。","Cloudy = 多雲的。On cloud nine = 非常高興。Every cloud has a silver lining."],
+["cold","koʊld","adj.","冷的","It's very cold outside today.","今天外面非常冷。","Catch a cold = 感冒。Cold-blooded = 冷血的。Freezing cold = 超冷。"],
+["come","kʌm","v.","來","Come here, please!","請過來！","Come back = 回來。Come on = 加油/來嘛。How come? = 為什麼？"],
+["computer","kəmˈpjuːtər","n.","電腦","I use my computer for work every day.","我每天用電腦工作。","Laptop = 筆電。Desktop = 桌電。Computer science = 電腦科學。"],
+["cook","kʊk","v./n.","煮；廚師","My mother cooks dinner every night.","我媽媽每天晚上做晚餐。","Cooking = 烹飪。Recipe = 食譜。Head chef = 主廚。"],
+["cool","kuːl","adj.","涼爽的；酷的","It's cool outside. Bring a jacket.","外面很涼爽，帶件外套。","How cool! = 太酷了！Cool down = 冷靜下來/降溫。"],
+["corner","ˈkɔːrnər","n.","角落；轉角","The café is on the corner of Main Street.","那家咖啡廳在大街的轉角。","Around the corner = 在轉角附近/即將到來。"],
+["correct","kəˈrɛkt","adj.","正確的","Your answer is completely correct!","你的答案完全正確！","Correctly = 正確地。Correction = 改正。Politically correct = 政治正確。"],
+["country","ˈkʌntri","n.","國家","Which country do you come from?","你來自哪個國家？","Countryside = 鄉村。Country music = 鄉村音樂。Home country = 祖國。"],
+["cry","kraɪ","v.","哭","The baby is crying in the next room.","嬰兒在隔壁房間哭泣。","Cry out = 大喊。Cry over spilt milk = 後悔已成定局之事。"],
+["cup","kʌp","n.","杯子","Would you like a cup of tea?","你想要一杯茶嗎？","Cup of coffee = 一杯咖啡。Trophy = 獎杯。World Cup = 世界盃。"],
+["cute","kjuːt","adj.","可愛的","What a cute little puppy!","多可愛的小狗啊！","Cuteness = 可愛。How cute! = 好可愛！"],
+["dance","dæns","v./n.","跳舞","I love to dance to music.","我喜歡隨著音樂跳舞。","Dance class = 舞蹈課。Slow dance = 慢舞。Dance floor = 舞池。"],
+["dangerous","ˈdeɪndʒərəs","adj.","危險的","It is dangerous to drive too fast.","開車太快是危險的。","Danger = 危險（名詞）。Dangerously = 危險地。"],
+["dark","dɑːrk","adj.","黑暗的","It gets dark early in winter.","冬天天黑得早。","In the dark = 在黑暗中/不知情。Dark chocolate = 黑巧克力。"],
+["date","deɪt","n.","日期；約會","What's the date today?","今天幾號？","Go on a date = 約會。Expiry date = 到期日。Up-to-date = 最新的。"],
+["day","deɪ","n.","一天","Have a nice day!","祝你有美好的一天！","Daytime = 白天。Day off = 休假日。Day by day = 一天天地。"],
+["decide","dɪˈsaɪd","v.","決定","Have you decided what to eat yet?","你決定好要吃什麼了嗎？","Decision = 決定（名詞）。Make a decision = 做決定。"],
+["deep","diːp","adj.","深的","The lake is very deep here.","這裡的湖非常深。","Deep breath = 深呼吸。Deep sleep = 深度睡眠。In deep trouble = 深陷麻煩。"],
+["delicious","dɪˈlɪʃəs","adj.","美味的","This cake is absolutely delicious!","這個蛋糕絕對美味！","Taste delicious = 嚐起來好吃。Deliciously = 美味地。"],
+["dentist","ˈdɛntɪst","n.","牙醫","I have a dentist appointment tomorrow.","我明天有牙醫預約。","Go to the dentist = 看牙醫。Dentistry = 牙科。"],
+["describe","dɪˈskraɪb","v.","描述","Can you describe what you saw?","你能描述你看到的嗎？","Description = 描述（名詞）。Describe in detail = 詳細描述。"],
+["design","dɪˈzaɪn","v./n.","設計","She designs beautiful clothes.","她設計漂亮的衣服。","Designer = 設計師。Interior design = 室內設計。By design = 故意地。"],
+["desk","dɛsk","n.","書桌","My desk is always clean and tidy.","我的書桌總是乾淨整齊。","At your desk = 在你的座位上。Front desk = 前台。"],
+["different","ˈdɪfərənt","adj.","不同的","We have very different tastes in food.","我們對食物的口味非常不同。","Differently = 不同地。Make a difference = 有所差異/影響。"],
+["difficult","ˈdɪfɪkəlt","adj.","困難的","This math problem is very difficult.","這道數學題非常困難。","Difficulty = 困難（名詞）。It's difficult to = 很難...。"],
+["dinner","ˈdɪnər","n.","晚餐","What are we having for dinner tonight?","今晚我們吃什麼晚餐？","Cook dinner = 做晚餐。Go out for dinner = 外出吃晚餐。"],
+["direction","dɪˈrɛkʃən","n.","方向","Can you give me directions to the station?","你能告訴我去車站的方向嗎？","In the direction of = 朝...方向。Follow directions = 按指示行動。"],
+["dirty","ˈdɜːrti","adj.","髒的","Your hands are dirty. Wash them!","你的手很髒，去洗手！","Get dirty = 弄髒。Dirty trick = 骯髒手段。"],
+["doctor","ˈdɒktər","n.","醫生","I need to see a doctor today.","我今天需要去看醫生。","Doctor's appointment = 看診預約。Family doctor = 家庭醫生。"],
+["dog","dɒɡ","n.","狗","My dog loves to play fetch.","我的狗喜歡玩撿球遊戲。","Hot dog = 熱狗。Dog walk = 遛狗。Every dog has its day = 風水輪流轉。"],
+["dream","driːm","n./v.","夢；夢想","I had a strange dream last night.","我昨晚做了一個奇怪的夢。","Dream big = 有大夢想。Follow your dreams = 追逐夢想。"],
+["drive","draɪv","v.","開車","She drives to work every morning.","她每天早上開車去上班。","Drive carefully = 小心開車。Go for a drive = 開車兜風。"],
+["dry","draɪ","adj.","乾的","The laundry is dry now.","衣物現在已經乾了。","Dry off = 擦乾。Run dry = 耗盡。Dry humor = 冷幽默。"],
+["each","iːtʃ","adj./pron.","每個","Each student must submit their homework.","每個學生都必須提交作業。","Each other = 彼此。Each and every = 每一個。"],
+["early","ˈɜːrli","adj./adv.","早的","I woke up early this morning.","我今天早上早起了。","Early bird = 早起者。Early on = 在早期。Better early than late."],
+["easy","ˈiːzi","adj.","容易的","The test was easier than I expected.","考試比我預期的容易。","Easygoing = 隨和的。Take it easy = 放輕鬆。Easy as pie = 很容易。"],
+["eat","iːt","v.","吃","What do you usually eat for breakfast?","你早餐通常吃什麼？","Eat out = 外食。Eat in = 在家吃。Eat well = 吃得好。"],
+["education","ˌɛdʒuˈkeɪʃən","n.","教育","Education is very important for success.","教育對成功非常重要。","Educated = 受過教育的。Higher education = 高等教育。"],
+["egg","ɛɡ","n.","蛋","I eat two eggs for breakfast every day.","我每天早餐吃兩個蛋。","Fried egg = 煎蛋。Hard-boiled egg = 水煮蛋。Don't put all eggs in one basket."],
+["elephant","ˈɛlɪfənt","n.","大象","Elephants are the largest land animals.","大象是最大的陸地動物。","Elephant in the room = 顯而易見的問題（大家不談）。"],
+["empty","ˈɛmpti","adj.","空的","The bottle is empty. I need more water.","瓶子是空的，我需要更多水。","On an empty stomach = 空腹。Empty-handed = 空手的。"],
+["energy","ˈɛnədʒi","n.","精力；能源","I don't have enough energy today.","我今天沒有足夠的精力。","Solar energy = 太陽能。Full of energy = 充滿精力。"],
+["enjoy","ɪnˈdʒɔɪ","v.","享受","I really enjoy swimming in the ocean.","我真的很享受在海洋中游泳。","Enjoyable = 令人愉快的。Enjoy yourself = 玩得開心。"],
+["enough","ɪˈnʌf","adj.","足夠的","Have you had enough to eat?","你吃夠了嗎？","Enough is enough = 夠了就夠了。Surprisingly enough = 夠令人驚訝地。"],
+["enter","ˈɛntər","v.","進入","Please enter your password here.","請在此輸入您的密碼。","Enter a competition = 參加比賽。Entrance = 入口。"],
+["environment","ɪnˈvaɪrənmənt","n.","自然環境","We must protect the environment.","我們必須保護環境。","Environmental = 環境的。Environmentalist = 環保人士。"],
+["event","ɪˈvɛnt","n.","事件；活動","The sports event was very exciting.","這場運動活動非常令人興奮。","In the event of = 如果發生...。Major event = 重大事件。"],
+["every","ˈɛvri","adj.","每個","I exercise every morning.","我每天早上運動。","Everyone = 每個人。Everything = 所有事。Every other day = 隔天。"],
+["excellent","ˈɛksələnt","adj.","優秀的","Your English is excellent!","你的英文非常優秀！","Excellently = 優秀地。Excellency = 閣下（稱號）。"],
+["exercise","ˈɛksərsaɪz","n./v.","運動；練習","I exercise for 30 minutes every day.","我每天運動30分鐘。","Physical exercise = 體育鍛煉。Exercise book = 練習本。"],
+["experience","ɪkˈspɪəriəns","n.","經驗","She has a lot of work experience.","她有很多工作經驗。","Experienced = 有經驗的。Experience = 體驗（動詞）。"],
+["eye","aɪ","n.","眼睛","She has beautiful blue eyes.","她有漂亮的藍眼睛。","Eye contact = 眼神接觸。Keep an eye on = 留意。Eye-catching = 引人注目的。"],
+["face","feɪs","n./v.","臉；面對","She has a kind face.","她有一張和善的臉。","Face to face = 面對面。Face the music = 承擔後果。Save face = 保留面子。"],
+["family","ˈfæmɪli","n.","家庭；家人","Family is the most important thing to me.","家人對我來說是最重要的。","Family reunion = 家庭聚會。Nuclear family = 核心家庭。"],
+["famous","ˈfeɪməs","adj.","著名的","Taiwan is famous for its night markets.","台灣以夜市聞名。","Fame = 名氣。Famous for = 以...著名。World-famous = 世界著名的。"],
+["fast","fæst","adj./adv.","快的","He runs really fast.","他跑得很快。","Fast food = 快餐。Fasten = 繫緊。Think fast = 快想。"],
+["father","ˈfɑːðər","n.","父親","My father works as an engineer.","我父親是一名工程師。","Dad = 爸爸（口語）。Father's Day = 父親節。Stepfather = 繼父。"],
+["feel","fiːl","v.","感覺","How do you feel today?","你今天感覺怎麼樣？","Feel like = 感覺想要。Feeling = 感覺（名詞）。Feel free to = 隨意...。"],
+["fire","faɪər","n.","火","Be careful! There is a fire in the kitchen!","小心！廚房著火了！","Set fire to = 放火。Catch fire = 著火。Firefighter = 消防員。"],
+["fish","fɪʃ","n./v.","魚；釣魚","I love eating fish.","我喜歡吃魚。","Fishing = 釣魚。Fish and chips = 炸魚薯條。Like a fish out of water = 格格不入。"],
+["flower","ˈflaʊər","n.","花","She received a bouquet of flowers.","她收到了一束花。","Flower shop = 花店。Wild flower = 野花。Bloom = 開花。"],
+["food","fuːd","n.","食物","This food smells really good!","這食物聞起來真的很香！","Food court = 美食廣場。Junk food = 垃圾食物。Street food = 街頭食物。"],
+["foot","fʊt","n.","腳","My feet hurt after walking all day.","走了一整天後我的腳很痛。","On foot = 步行。Put your foot down = 堅持立場。"],
+["forget","fərˈɡɛt","v.","忘記","Don't forget to call your mother!","別忘了打電話給你媽媽！","Forget about it = 算了。Forgetful = 健忘的。"],
+["free","friː","adj.","自由的；免費的","Is this sample free of charge?","這個樣品是免費的嗎？","Freedom = 自由。Free time = 空閒時間。Feel free = 隨意。"],
+["friend","frɛnd","n.","朋友","She is my best friend.","她是我最好的朋友。","Friendship = 友誼。Make friends = 交朋友。"],
+["fruit","fruːt","n.","水果","Fruit is a healthy snack.","水果是健康的點心。","Tropical fruit = 熱帶水果。Bear fruit = 結果實/奏效。"],
+["funny","ˈfʌni","adj.","好笑的；奇怪的","That joke was really funny!","那個笑話真的很好笑！","Funny bone = 搞笑的一面。Funnily enough = 有趣的是。"],
+["game","ɡeɪm","n.","遊戲；比賽","Do you want to play a board game?","你想玩棋盤遊戲嗎？","Video game = 電玩遊戲。Fair game = 公平競爭。Game over = 遊戲結束。"],
+["garden","ˈɡɑːrdən","n.","花園","My grandmother grows vegetables in her garden.","我祖母在她的花園裡種蔬菜。","Garden party = 花園派對。Vegetable garden = 菜圃。"],
+["gift","ɡɪft","n.","禮物；天賦","This is a gift for your birthday.","這是給你生日的禮物。","Gift-wrap = 包裝禮物。Gifted = 有天賦的。"],
+["go","ɡoʊ","v.","去","Let's go to the park!","我們去公園吧！","Go shopping = 購物。Go for it! = 去做吧！On the go = 忙著移動中。"],
+["good","ɡʊd","adj.","好的","You did a really good job today!","你今天做得非常好！","Good morning/afternoon/evening = 早安/午安/晚安。Goodness = 善良。"],
+["great","ɡreɪt","adj.","傑出的；很棒的","That's a great idea!","那是個很棒的主意！","Great at = 擅長...。The Great Wall = 長城。Great job! = 做得好！"],
+["green","ɡriːn","adj.","綠色的","Eat your green vegetables!","吃你的綠色蔬菜！","Green tea = 綠茶。Go green = 環保。Green light = 綠燈/許可。"],
+["grow","ɡroʊ","v.","生長","Trees grow slowly over many years.","樹木在許多年中緩慢生長。","Grow up = 長大。Grown-up = 成年人。Growth = 成長。"],
+["hand","hænd","n.","手","She shook my hand.","她握了我的手。","Hand in hand = 手牽手。Give a hand = 幫忙/鼓掌。On the other hand = 另一方面。"],
+["happy","ˈhæpi","adj.","快樂的","I'm so happy to see you!","見到你我真的很開心！","Happiness = 幸福。Happy-go-lucky = 無憂無慮的。"],
+["hate","heɪt","v./n.","憎恨","I hate getting up early.","我討厭早起。","Hatred = 仇恨（名詞）。Hateful = 充滿仇恨的。"],
+["have","hæv","v.","有；吃","I have a meeting at 3pm.","我下午3點有一個會議。","Have fun = 玩得開心。Have a go = 試試。Have to = 必須。"],
+["healthy","ˈhɛlθi","adj.","健康的","Eating vegetables keeps you healthy.","吃蔬菜保持你的健康。","Health = 健康（名詞）。Stay healthy = 保持健康。"],
+["hear","hɪər","v.","聽","I can't hear you. Speak louder!","我聽不見你，說大聲一點！","Hear from = 收到...的消息。Hear about = 聽說。Hearing = 聽力。"],
+["heart","hɑːrt","n.","心臟；心","She has a kind heart.","她有一顆善良的心。","Heartbeat = 心跳。Heartbroken = 心碎的。By heart = 熟記。"],
+["heavy","ˈhɛvi","adj.","重的","This box is too heavy for me to carry.","這個箱子對我來說太重了。","Heavy rain = 大雨。Heavy traffic = 交通壅塞。"],
+["help","hɛlp","v./n.","幫助","Can you help me with this?","你能幫我解決這個問題嗎？","Help out = 幫忙。Helpful = 有幫助的。I need help = 我需要幫助。"],
+["high","haɪ","adj.","高的","The mountain is very high.","那座山非常高。","High school = 高中。High five = 擊掌。High-quality = 高品質的。"],
+["history","ˈhɪstəri","n.","歷史","I love learning about ancient history.","我喜歡學習古代歷史。","Historical = 歷史的。History lesson = 歷史課。Make history = 創造歷史。"],
+["hobby","ˈhɒbi","n.","嗜好","My hobbies are reading and cooking.","我的嗜好是閱讀和烹飪。","What are your hobbies? = 你的嗜好是什麼？"],
+["holiday","ˈhɒlɪdeɪ","n.","假日","We're going on holiday next week.","我們下週要去度假。","Public holiday = 公共假日。Holiday season = 假期季節。"],
+["home","hoʊm","n.","家","There's no place like home.","沒有任何地方比得上家。","Homework = 家庭作業。Homesick = 思鄉的。Home sweet home = 家的甜蜜。"],
+["honest","ˈɒnɪst","adj.","誠實的","Always be honest with your friends.","對朋友要誠實。","Honesty = 誠實。Honestly = 老實說。Honest mistake = 無心之失。"],
+["hospital","ˈhɒspɪtl","n.","醫院","She works as a nurse at the hospital.","她在醫院擔任護士。","Emergency room = 急診室。Hospital ward = 病房。"],
+["hotel","hoʊˈtɛl","n.","旅館","We stayed at a beautiful hotel.","我們住在一家美麗的旅館。","Check in/out = 入住/退房。Hotel room = 旅館房間。"],
+["house","haʊs","n.","房子","They just bought a new house.","他們剛買了一棟新房子。","Household = 家庭。Housemate = 室友。Open house = 開放參觀。"],
+["hungry","ˈhʌŋɡri","adj.","飢餓的","I'm starving! I need food now.","我餓壞了！我現在需要食物。","Hunger = 飢餓。Starving = 極度飢餓。Go hungry = 挨餓。"],
+["hurry","ˈhʌri","v.","匆忙","Hurry up! We're going to be late.","快點！我們要遲到了。","In a hurry = 匆忙中。Hurry = 趕緊。Don't rush = 別著急。"],
+["idea","aɪˈdiə","n.","想法；主意","That's a brilliant idea!","那是一個絕妙的主意！","Good idea = 好主意。No idea = 不知道。Come up with an idea = 想出主意。"],
+["important","ɪmˈpɔːrtənt","adj.","重要的","It's important to exercise regularly.","定期運動很重要。","Importance = 重要性。Importantly = 重要地。"],
+["invite","ɪnˈvaɪt","v.","邀請","She invited us to her birthday party.","她邀請我們參加她的生日派對。","Invitation = 邀請（名詞）。Invite over = 邀請到家裡。"],
+["island","ˈaɪlənd","n.","島","Taiwan is a beautiful island.","台灣是一個美麗的島嶼。","Island hopping = 跳島旅遊。Desert island = 荒島。"],
+["job","dʒɒb","n.","工作","I love my job very much.","我非常喜愛我的工作。","Job interview = 工作面試。Part-time job = 兼職。Full-time job = 全職。"],
+["join","dʒɔɪn","v.","加入；參加","Would you like to join our team?","你想加入我們的團隊嗎？","Join in = 參加。Join forces = 聯手。"],
+["jump","dʒʌmp","v.","跳","The children love to jump on the trampoline.","孩子們喜歡在蹦床上跳。","Jump rope = 跳繩。High jump = 跳高。"],
+["keep","kiːp","v.","保持；保留","Keep the change!","不用找零錢了！","Keep in touch = 保持聯絡。Keep up = 跟上。Keepsake = 紀念品。"],
+["kind","kaɪnd","adj.","仁慈的","She is always kind to others.","她對別人總是很仁慈。","Kindness = 仁慈。Kind-hearted = 好心的。"],
+["know","noʊ","v.","知道；認識","Do you know how to cook?","你知道怎麼烹飪嗎？","Knowledge = 知識。Know-how = 技術知識。Know by heart = 熟記。"],
+["language","ˈlæŋɡwɪdʒ","n.","語言","How many languages can you speak?","你會說幾種語言？","Language barrier = 語言障礙。Mother tongue = 母語。"],
+["large","lɑːrdʒ","adj.","大的","We need a large table for all of us.","我們需要一張大桌子給我們所有人。","At large = 自由/整體而言。Large-scale = 大規模的。"],
+["late","leɪt","adj./adv.","晚的；遲到","Sorry I'm late! The traffic was bad.","對不起我遲到了！交通很糟糕。","Better late than never = 遲到好過不到。Late-night = 深夜的。"],
+["learn","lɜːrn","v.","學習","I learn something new every day.","我每天都學到新東西。","Learn from mistakes = 從錯誤中學習。Fast learner = 學得快的人。"],
+["leave","liːv","v.","離開；留下","What time do you leave for work?","你幾點出發去上班？","Leave behind = 留下。Leave out = 遺漏。On leave = 休假中。"],
+["letter","ˈlɛtər","n.","信；字母","I received a letter from my friend.","我收到了朋友的一封信。","Love letter = 情書。Letter box = 信箱。"],
+["library","ˈlaɪbrɛri","n.","圖書館","I go to the library to study.","我去圖書館讀書。","Public library = 公共圖書館。Library card = 借書證。"],
+["life","laɪf","n.","生命；生活","Life is beautiful!","生命是美麗的！","Lifestyle = 生活方式。Lifetime = 一生。Real life = 現實生活。"],
+["like","laɪk","v./prep.","喜歡；像","I like to travel to new places.","我喜歡去新地方旅行。","Would like = 想要。What's it like? = 那是什麼樣的？"],
+["listen","ˈlɪsən","v.","聽","Please listen carefully to the instructions.","請仔細聆聽指示。","Listen to music = 聽音樂。Listener = 聽眾。"],
+["little","ˈlɪtl","adj.","小的；少的","Just a little sugar, please.","請只要一點點糖。","A little = 一點點。Little by little = 慢慢地。"],
+["live","lɪv","v.","居住；生活","I live near the city center.","我住在市中心附近。","Live abroad = 住在國外。Live and learn = 活到老學到老。"],
+["long","lɔːŋ","adj.","長的","The movie was three hours long.","這部電影長達三個小時。","Long time no see = 好久不見。As long as = 只要。"],
+["look","lʊk","v./n.","看；外觀","Look at this beautiful photo!","看看這張美麗的照片！","Look for = 尋找。Look forward to = 期待。Look like = 看起來像。"],
+["lose","luːz","v.","失去；輸","Don't lose your passport!","別遺失你的護照！","Lose weight = 減重。Lose track of = 失去...的蹤跡。"],
+["love","lʌv","v./n.","愛","I love spending time with my family.","我喜歡和家人在一起。","Fall in love = 墜入愛河。Love at first sight = 一見鍾情。"],
+["lucky","ˈlʌki","adj.","幸運的","I'm so lucky to have such good friends.","我真幸運有這麼好的朋友。","Lucky charm = 幸運物。Good luck! = 祝好運！"],
+["make","meɪk","v.","做；製作","Let's make dinner together tonight.","今晚一起做晚餐吧。","Make a mistake = 犯錯。Make sense = 有意義。Make friends = 交朋友。"],
+["many","ˈmɛni","adj.","許多的","How many people came to the party?","有多少人來參加派對？","Many a time = 多次。Too many = 太多。Not many = 不多。"],
+["map","mæp","n.","地圖","Can you show me on the map?","你能在地圖上指給我看嗎？","Road map = 路線圖。Map out = 規劃。"],
+["market","ˈmɑːrkɪt","n.","市場","The night market is very popular.","夜市非常受歡迎。","Supermarket = 超市。Stock market = 股票市場。"],
+["meal","miːl","n.","餐","Breakfast is the most important meal.","早餐是最重要的一餐。","Three meals a day = 一日三餐。Meal prep = 餐前準備。"],
+["medicine","ˈmɛdɪsɪn","n.","藥；醫學","Take this medicine twice a day.","每天服用這種藥兩次。","Traditional medicine = 傳統醫學。"],
+["meet","miːt","v.","見面；遇見","It's so nice to meet you!","認識你真好！","Meeting = 會議。Meet halfway = 各退一步。"],
+["milk","mɪlk","n.","牛奶","I drink a glass of milk every morning.","我每天早上喝一杯牛奶。","Soy milk = 豆奶。Skim milk = 脫脂牛奶。"],
+["minute","ˈmɪnɪt","n.","分鐘","I'll be ready in just five minutes.","我五分鐘後就準備好了。","Just a minute = 稍等。Minute by minute = 逐分鐘地。"],
+["mistake","mɪˈsteɪk","n.","錯誤","Everyone makes mistakes sometimes.","每個人有時都會犯錯。","Make a mistake = 犯錯。Learn from mistakes = 從錯誤中學習。"],
+["money","ˈmʌni","n.","錢","I need to save more money.","我需要存更多錢。","Make money = 賺錢。Spend money = 花錢。Money talks = 有錢能使鬼推磨。"],
+["month","mʌnθ","n.","月份","This is the last month of the year.","這是一年中的最後一個月份。","Monthly = 每月的。This/last/next month = 這/上/下個月。"],
+["mother","ˈmʌðər","n.","母親","My mother is a wonderful woman.","我的母親是一位很棒的女性。","Mom/Mum = 媽媽（口語）。Mother tongue = 母語。"],
+["mountain","ˈmaʊntɪn","n.","山","We went hiking in the mountains.","我們去山裡健行。","Mountain climbing = 登山。Mountain top = 山頂。"],
+["move","muːv","v.","移動；搬家","We moved to a new apartment last year.","我們去年搬到新公寓。","Move on = 繼續前進。Moving = 感人的。"],
+["movie","ˈmuːvi","n.","電影","Let's watch a movie tonight!","今晚我們來看電影吧！","Movie star = 電影明星。Movie theater = 電影院。"],
+["music","ˈmjuːzɪk","n.","音樂","Music is the language of the soul.","音樂是靈魂的語言。","Music lover = 音樂愛好者。Classical music = 古典音樂。"],
+["name","neɪm","n.","名字","My name is Sarah. What's yours?","我叫Sarah，你呢？","Nickname = 綽號。Name card = 名片。Call someone names = 罵人。"],
+["nature","ˈneɪtʃər","n.","自然","I love spending time in nature.","我喜歡在大自然中度過時光。","Natural = 自然的。Naturally = 自然地。Nature lover = 大自然愛好者。"],
+["near","nɪər","prep.","靠近","Is there a bank near here?","這附近有銀行嗎？","Nearby = 附近的。Near future = 近期。"],
+["need","niːd","v.","需要","I really need to get some sleep.","我真的需要睡個覺。","In need = 有需要的。Needless to say = 不用說。"],
+["never","ˈnɛvər","adv.","從不","I have never been to Europe.","我從未去過歐洲。","Never mind = 沒關係。Better late than never = 遲到好過不到。"],
+["new","njuː","adj.","新的","I got a brand new bicycle!","我得到了一輛全新的自行車！","Brand new = 全新的。New Year = 新年。What's new? = 有什麼新鮮事？"],
+["nice","naɪs","adj.","友善的；好看的","It's nice to meet you!","很高興認識你！","Nice day = 好天氣。Nicely = 好好地。"],
+["night","naɪt","n.","夜晚","Good night! Sleep well.","晚安！睡個好覺。","Overnight = 一夜之間。Nighttime = 夜間。Nightmare = 惡夢。"],
+["noise","nɔɪz","n.","噪音","Please make less noise!","請少製造一點噪音！","Noisy = 吵雜的。Background noise = 背景噪音。"],
+["number","ˈnʌmbər","n.","數字；號碼","What's your phone number?","你的電話號碼是幾號？","Phone number = 電話號碼。Number one = 第一名。"],
+["often","ˈɒfən","adv.","經常","How often do you exercise?","你多常運動？","Very often = 非常常。Not often = 不常。More often than not = 多半。"],
+["old","oʊld","adj.","老的；舊的","How old are you?","你幾歲了？","Old-fashioned = 老派的。Good old days = 美好舊時光。"],
+["open","ˈoʊpən","adj./v.","開著的；打開","Is the store open now?","商店現在開著嗎？","Open-minded = 心胸開闊的。Wide open = 大開的。"],
+["order","ˈɔːrdər","v./n.","訂購；點餐；命令","Are you ready to order?","您準備好點餐了嗎？","In order = 整齊/按順序。Out of order = 故障。"],
+["outside","ˌaʊtˈsaɪd","adv./prep.","在外面","It's raining outside today.","今天外面在下雨。","Go outside = 出去。Outside world = 外面的世界。"],
+["pain","peɪn","n.","痛苦；疼痛","I have a sharp pain in my knee.","我的膝蓋有一陣刺痛。","Painful = 痛苦的。Painkiller = 止痛藥。Growing pains = 成長的煩惱。"],
+["parent","ˈpɛrənt","n.","父親或母親","My parents are very supportive.","我的父母非常支持我。","Single parent = 單親父母。Parent-teacher meeting = 家長教師會議。"],
+["park","pɑːrk","n./v.","公園；停車","Let's have a picnic in the park.","我們在公園野餐吧。","Park a car = 停車。Parking lot = 停車場。"],
+["party","ˈpɑːrti","n.","派對；黨","Are you coming to my birthday party?","你來參加我的生日派對嗎？","Party time = 派對時間。Political party = 政黨。"],
+["pay","peɪ","v.","付錢","How would you like to pay?","你想怎麼付款？","Pay attention = 注意。Pay back = 還錢。Pay off = 還清/值得。"],
+["people","ˈpiːpl","n.","人","There were many people at the concert.","音樂會有很多人。","People-watching = 觀察人群。Young people = 年輕人。"],
+["phone","foʊn","n./v.","電話；手機","My phone battery is almost dead.","我的手機電池快沒電了。","Phone call = 電話。Smart phone = 智慧型手機。"],
+["picture","ˈpɪktʃər","n.","照片；圖畫","Can you take a picture of us?","你能幫我們拍張照片嗎？","Paint a picture = 描繪情況。Get the picture = 明白了。"],
+["place","pleɪs","n.","地方","This is a beautiful place!","這是一個美麗的地方！","Take place = 發生。In place of = 代替。"],
+["plan","plæn","n./v.","計畫","Do you have any plans for the weekend?","你週末有什麼計畫？","Plan ahead = 提前計劃。Change of plans = 計畫有變。"],
+["play","pleɪ","v./n.","玩；演奏；戲劇","The children are playing in the yard.","孩子們在院子裡玩耍。","Play music = 演奏音樂。Fair play = 公平競爭。"],
+["polite","pəˈlaɪt","adj.","有禮貌的","Always be polite to others.","對別人要有禮貌。","Politeness = 禮貌。Impolite = 不禮貌的。"],
+["popular","ˈpɒpjələr","adj.","受歡迎的","This restaurant is very popular.","這家餐廳非常受歡迎。","Popularity = 人氣。Popularly = 廣泛地。"],
+["practice","ˈpræktɪs","v./n.","練習","Practice makes perfect!","熟能生巧！","Practice session = 練習時間。In practice = 實際上。"],
+["problem","ˈprɒbləm","n.","問題","I have a problem with my computer.","我的電腦有問題。","No problem! = 沒問題！Problem-solving = 解決問題。"],
+["protect","prəˈtɛkt","v.","保護","We must protect the environment.","我們必須保護環境。","Protection = 保護（名詞）。Protective = 保護的。"],
+["question","ˈkwɛstʃən","n.","問題","Do you have any questions?","你有任何問題嗎？","Ask a question = 提問。Question mark = 問號。"],
+["quick","kwɪk","adj./adv.","迅速的","Be quick! We're late.","快點！我們遲到了。","Quickly = 迅速地。Quick-witted = 機智的。"],
+["quiet","ˈkwaɪɪt","adj.","安靜的","Please be quiet in the library.","在圖書館裡請保持安靜。","Quietly = 安靜地。Keep quiet = 保持安靜。"],
+["rain","reɪn","n./v.","雨；下雨","It's raining heavily outside.","外面正在下大雨。","Rainbow = 彩虹。Rainy day = 雨天。Save for a rainy day = 未雨綢繆。"],
+["read","riːd","v.","閱讀","I read a book every week.","我每週閱讀一本書。","Reading = 閱讀。Read between the lines = 讀出弦外之音。"],
+["ready","ˈrɛdi","adj.","準備好的","Are you ready to go?","你準備好出發了嗎？","Get ready = 做準備。Ready-made = 現成的。"],
+["remember","rɪˈmɛmbər","v.","記得","Do you remember where we first met?","你記得我們第一次見面的地方嗎？","Remember to = 記得做。Remind = 提醒別人。"],
+["restaurant","ˈrɛstərɒnt","n.","餐廳","Let's try that new restaurant.","我們去試試那家新餐廳。","Fine dining restaurant = 精緻餐廳。"],
+["right","raɪt","adj.","正確的；右邊的","Turn right at the corner.","在轉角右轉。","Right away = 馬上。That's right = 對了。"],
+["run","rʌn","v.","跑步；運行","I run every morning for exercise.","我每天早上跑步鍛煉。","Run out of = 用完。Run into = 偶遇。In the long run = 從長遠來看。"],
+["sad","sæd","adj.","悲傷的","I feel sad when I miss my family.","想念家人時我感到悲傷。","Sadness = 悲傷（名詞）。Sadly = 遺憾地。"],
+["safe","seɪf","adj.","安全的","Is it safe to drink the tap water here?","這裡的自來水安全可以喝嗎？","Safety = 安全。Safely = 安全地。Safe and sound = 平安無事。"],
+["school","skuːl","n.","學校","I go to school by bicycle.","我騎自行車上學。","High school = 高中。School day = 上學日。"],
+["sell","sɛl","v.","販賣","They sell fresh vegetables at the market.","他們在市場上賣新鮮蔬菜。","Sold out = 售完。Sell well = 暢銷。"],
+["send","sɛnd","v.","寄；送","Please send me the information.","請把資訊寄給我。","Send a message = 發訊息。Send off = 送行。"],
+["show","ʃoʊ","v./n.","展示；表演","Can you show me how to do this?","你能展示給我看怎麼做嗎？","TV show = 電視節目。Show off = 炫耀。"],
+["simple","ˈsɪmpl","adj.","簡單的","The recipe is very simple.","這個食譜非常簡單。","Simply = 簡單地。Simplify = 簡化。Keep it simple = 保持簡單。"],
+["sing","sɪŋ","v.","唱歌","She loves to sing in the shower.","她喜歡在淋浴時唱歌。","Singer = 歌手。Sing along = 一起唱。"],
+["sit","sɪt","v.","坐","Please sit down and make yourself comfortable.","請坐下，讓自己舒服。","Sit up = 坐直。Sit back = 放鬆等待。"],
+["sleep","sliːp","v./n.","睡覺","I need to sleep at least 8 hours a night.","我每晚至少需要睡8小時。","Fall asleep = 入睡。Oversleep = 睡過頭。"],
+["slow","sloʊ","adj.","緩慢的","Please drive more slowly here.","請在這裡開慢一點。","Slowly = 緩慢地。Slow down = 放慢速度。"],
+["small","smɔːl","adj.","小的","This apartment is very small.","這個公寓非常小。","Small talk = 閒聊。Small world = 世界真小。"],
+["smell","smɛl","v./n.","聞；氣味","This flower smells beautiful.","這朵花聞起來很美。","Good/bad smell = 好/壞氣味。Smell like = 聞起來像。"],
+["smile","smaɪl","v./n.","微笑","Her smile brightens the room.","她的微笑讓房間明亮起來。","Keep smiling = 保持微笑。"],
+["song","sɒŋ","n.","歌","This song is my favorite.","這首歌是我最喜歡的。","Sing a song = 唱一首歌。Song lyrics = 歌詞。"],
+["sorry","ˈsɒri","adj.","抱歉的","I'm so sorry for being late.","我非常抱歉遲到了。","Say sorry = 道歉。Feel sorry for = 同情。I'm afraid... = 恐怕...。"],
+["speak","spiːk","v.","說話","She speaks three languages fluently.","她能流利地說三種語言。","Speak up = 大聲說/發表意見。Speaker = 演講者。"],
+["special","ˈspɛʃəl","adj.","特別的","This is a very special occasion.","這是一個非常特別的場合。","Specialty = 專長。Special offer = 特別優惠。"],
+["spend","spɛnd","v.","花費；花時間","I spend too much money on coffee.","我在咖啡上花了太多錢。","Spend time = 花時間。Well-spent = 花得值得的。"],
+["sport","spɔːrt","n.","體育活動","I play sport every weekend.","我每個週末都做運動。","Sports car = 跑車。Sportsmanship = 運動家精神。"],
+["start","stɑːrt","v./n.","開始","Let's start the meeting now.","讓我們現在開始會議。","Start over = 重新開始。Fresh start = 全新開始。"],
+["stay","steɪ","v.","停留；住","We stayed at a nice hotel.","我們住在一家好旅館。","Stay in touch = 保持聯絡。Stay up late = 熬夜。"],
+["stop","stɒp","v.","停","Please stop talking and listen!","請停止說話，聽著！","Bus stop = 公車站。Non-stop = 不停地。"],
+["store","stɔːr","n.","商店","I need to go to the grocery store.","我需要去雜貨店。","Department store = 百貨公司。Storage = 儲存。"],
+["street","striːt","n.","街道","Our school is on Main Street.","我們的學校在大街上。","Street food = 街頭食物。On the street = 在街上。"],
+["strong","strɒŋ","adj.","強壯的","You need to be strong to carry this.","你需要很強壯才能搬這個。","Strength = 力量。Strongly = 強烈地。"],
+["student","ˈstjuːdənt","n.","學生","She is an excellent student.","她是一名優秀的學生。","Student loan = 學生貸款。Fellow student = 同學。"],
+["study","ˈstʌdi","v.","學習；讀書","I study English for an hour every day.","我每天學習英文一個小時。","Study hard = 努力讀書。Study group = 讀書小組。"],
+["summer","ˈsʌmər","n.","夏天","I love swimming in summer.","我喜歡在夏天游泳。","Summer vacation = 暑假。Summer camp = 夏令營。"],
+["sweet","swiːt","adj.","甜的","This cake is very sweet.","這個蛋糕非常甜。","Sweet tooth = 嗜甜的人。Bittersweet = 苦甜的。"],
+["swim","swɪm","v.","游泳","I swim every morning for exercise.","我每天早上游泳鍛煉。","Swimming pool = 游泳池。Swimmer = 游泳者。"],
+["take","teɪk","v.","拿；帶；搭乘","Take the bus to save money.","搭公車省錢。","Take care = 保重。Take part in = 參與。Take a break = 休息一下。"],
+["talk","tɔːk","v.","說話；談話","We need to talk about this.","我們需要談談這件事。","Small talk = 閒聊。Talk show = 脫口秀。"],
+["teacher","ˈtiːtʃər","n.","老師","She is a very good English teacher.","她是一位非常好的英文老師。","Teach = 教（動詞）。Teaching = 教學。"],
+["team","tiːm","n.","隊伍","Our team won the game!","我們的隊伍贏了比賽！","Teamwork = 團隊合作。Team player = 善於合作的人。"],
+["tell","tɛl","v.","說；告訴","Can you tell me how to get there?","你能告訴我怎麼去那裡嗎？","Tell a story = 講故事。Tell a joke = 說笑話。"],
+["think","θɪŋk","v.","想；認為","I think we should leave now.","我認為我們現在應該離開了。","Think about = 考慮。Think outside the box = 創新思考。"],
+["time","taɪm","n.","時間","Time flies when you're having fun.","玩得開心時時間過得很快。","On time = 準時。Free time = 空閒時間。Time management = 時間管理。"],
+["tired","taɪərd","adj.","疲倦的","I'm very tired after a long day.","一整天後我非常疲倦。","Get tired of = 對...感到厭倦。Tiresome = 令人疲憊的。"],
+["today","təˈdeɪ","n./adv.","今天","What are you doing today?","你今天在做什麼？","Today's special = 今日特餐。"],
+["together","təˈɡɛðər","adv.","一起","Let's work together on this project.","讓我們一起合作這個專案。","Get together = 聚會。Together with = 與...一起。"],
+["tomorrow","təˈmɒroʊ","n./adv.","明天","See you tomorrow!","明天見！","Tomorrow morning/afternoon = 明天早上/下午。"],
+["travel","ˈtrævəl","v./n.","旅行","I love to travel to new countries.","我喜歡去新的國家旅行。","Travel agency = 旅行社。Business travel = 商務旅行。"],
+["true","truː","adj.","真的","Is that story true?","那個故事是真的嗎？","Come true = 實現。True story = 真實故事。"],
+["try","traɪ","v.","試圖；嘗試","Just try your best!","盡你的全力就好！","Try on = 試穿。Give it a try = 試試看。"],
+["turn","tɜːrn","v.","轉彎；變成","Turn right at the next corner.","在下一個轉角右轉。","Turn off/on = 關閉/打開。Take turns = 輪流。"],
+["understand","ˌʌndərˈstænd","v.","了解；明白","Do you understand the question?","你明白這個問題嗎？","Misunderstand = 誤解。Understanding = 理解。"],
+["use","juːz","v.","使用","Can I use your phone?","我可以用你的手機嗎？","Useful = 有用的。User = 使用者。Use up = 用完。"],
+["usually","ˈjuːʒuəli","adv.","通常","I usually wake up at 7am.","我通常早上7點起床。","Unusual = 不尋常的。More often than usual = 比平時更常。"],
+["vacation","veɪˈkeɪʃən","n.","假期","Where are you going for your vacation?","你要去哪裡度假？","On vacation = 在度假。Summer vacation = 暑假。"],
+["vegetable","ˈvɛdʒtəbl","n.","蔬菜","Eat more vegetables to stay healthy.","多吃蔬菜保持健康。","Fresh vegetables = 新鮮蔬菜。Vegetarian = 素食者。"],
+["visit","ˈvɪzɪt","v./n.","探訪","We visited my grandparents last weekend.","我們上週末去探望了祖父母。","Visitor = 訪客。Pay a visit = 拜訪。"],
+["voice","vɔɪs","n.","聲音","She has a beautiful singing voice.","她有一副美麗的歌聲。","Voice message = 語音訊息。Raise your voice = 提高聲音/發怒。"],
+["wait","weɪt","v.","等待","Please wait here for a moment.","請在這裡稍候片刻。","Can't wait = 迫不及待。Wait and see = 等著瞧。"],
+["want","wɒnt","v.","想要","I want to learn to play the guitar.","我想學彈吉他。","Wanted = 通緝的/急徵的。Want ad = 徵人廣告。"],
+["warm","wɔːrm","adj.","暖和的","Put on a warm coat today.","今天穿件暖和的外套。","Warm up = 暖身。Warm-hearted = 熱心的。"],
+["watch","wɒtʃ","v./n.","觀看；手錶","I watch TV in the evening.","我在晚上看電視。","Watch out! = 小心！Wristwatch = 手錶。"],
+["weather","ˈwɛðər","n.","天氣","What's the weather like today?","今天天氣怎麼樣？","Weather forecast = 天氣預報。Under the weather = 身體不舒服。"],
+["week","wiːk","n.","週","I exercise three times a week.","我每週運動三次。","Weekday = 平日。Weekend = 週末。Weekly = 每週的。"],
+["window","ˈwɪndoʊ","n.","窗戶","Please open the window for fresh air.","請打開窗戶讓新鮮空氣進來。","Window shopping = 逛街不買。Window seat = 靠窗座位。"],
+["wonderful","ˈwʌndərfəl","adj.","極好的","We had a wonderful time together!","我們一起度過了美好的時光！","Wonder = 驚奇。Wonderfully = 美好地。"],
+["word","wɜːrd","n.","字","I learned 15 new words today!","我今天學了15個新單字！","Word for word = 逐字地。Key word = 關鍵字。"],
+["work","wɜːrk","v./n.","工作","I work from 9am to 6pm.","我從早上9點工作到下午6點。","Overwork = 過勞。Work out = 健身/解決。"],
+["world","wɜːrld","n.","世界","I want to travel the whole world.","我想環遊整個世界。","World record = 世界紀錄。World-famous = 世界聞名的。"],
+["worried","ˈwʌrid","adj.","擔心的","I'm worried about my exam tomorrow.","我擔心明天的考試。","Worry = 擔心（動詞）。Don't worry = 別擔心。"],
+["write","raɪt","v.","寫","I write in my diary every day.","我每天寫日記。","Writing = 寫作。Writer = 作家。Write back = 回信。"],
+["wrong","rɒŋ","adj.","錯的","I think you have the wrong number.","我認為你撥錯號碼了。","Go wrong = 出錯。What's wrong? = 怎麼了？"],
+["year","jɪər","n.","年","Happy New Year!","新年快樂！","Year after year = 年復一年。Light-year = 光年。"],
+["yesterday","ˈjɛstərdeɪ","n./adv.","昨天","I saw a great movie yesterday.","我昨天看了一部好電影。","The day before yesterday = 前天。"],
+["young","jʌŋ","adj.","年輕的","She looks young for her age.","她看起來比實際年齡年輕。","Youth = 青春。Young at heart = 永保年輕心態。"],
+["zoo","zuː","n.","動物園","We took the kids to the zoo.","我們帶孩子們去動物園。","Zookeeper = 動物園管理員。"],
+];
+
+// Intermediate & Advanced word banks (compact versions)
+const IW=[
+["negotiate","nɪˈɡoʊʃieɪt","v.","協商談判","We need to negotiate the price.","我們需要協商價格。","Negotiation=談判(名詞)。Negotiable=可商量的。"],
+["deadline","ˈdɛdlaɪn","n.","截止日期","The deadline is this Friday.","截止日期是這週五。","Meet a deadline=趕上。Miss a deadline=錯過。"],
+["available","əˈveɪləbl","adj.","有空的；可用的","Are you available tomorrow?","你明天有空嗎？","I'm not available=我沒空。Unavailable=不可用的。"],
+["recommend","ˌrɛkəˈmɛnd","v.","推薦","Can you recommend a restaurant?","你能推薦一家餐廳嗎？","Recommendation=推薦(名詞)。I highly recommend..."],
+["professional","prəˈfɛʃənl","adj.","專業的","She looks very professional.","她看起來非常專業。","Professionalism=專業精神。Profession=職業。"],
+["schedule","ˈskɛdʒuːl","n./v.","時間表；安排","Let me check my schedule.","讓我查一下我的時間表。","On schedule=按時。Ahead of schedule=提前。"],
+["confirm","kənˈfɜːrm","v.","確認","Please confirm your booking.","請確認您的預訂。","Confirmation=確認(名詞)。"],
+["opportunity","ˌɒpəˈtjuːnɪti","n.","機會","This is a great opportunity.","這是一個絕佳機會。","Seize an opportunity=抓住機會。"],
+["feedback","ˈfiːdbæk","n.","回饋意見","I'd appreciate your feedback.","我很感謝您的意見。","Constructive feedback=建設性意見。"],
+["responsible","rɪˈspɒnsɪbl","adj.","有責任感的","Be responsible for your actions.","為你的行為負責。","Responsibility=責任(名詞)。"],
+["efficient","ɪˈfɪʃnt","adj.","有效率的","We need a more efficient method.","我們需要更有效率的方法。","Efficiency=效率(名詞)。"],
+["collaborate","kəˈlæbəreɪt","v.","合作","Let's collaborate on this project.","讓我們合作這個專案。","Collaboration=合作(名詞)。"],
+["budget","ˈbʌdʒɪt","n.","預算","Stay within the budget.","在預算內完成。","Over budget=超預算。"],
+["client","ˈklaɪənt","n.","客戶","Our client needs the report.","我們的客戶需要報告。","Client meeting=客戶會議。"],
+["strategy","ˈstrætɪdʒi","n.","策略","We need a clear strategy.","我們需要清晰的策略。","Strategic=策略性的。"],
+["proposal","prəˈpoʊzl","n.","提案","Please review the proposal.","請審閱提案。","Submit a proposal=提交提案。"],
+["urgent","ˈɜːrdʒənt","adj.","緊急的","This is an urgent matter.","這是緊急事項。","Urgently=緊急地。Urgency=緊迫性。"],
+["clarify","ˈklærɪfaɪ","v.","澄清","Could you clarify that point?","你能澄清那一點嗎？","Clarification=澄清(名詞)。"],
+["reliable","rɪˈlaɪəbl","adj.","可靠的","We need a reliable supplier.","我們需要可靠的供應商。","Reliability=可靠性。"],
+["achieve","əˈtʃiːv","v.","達成","We achieved our targets.","我們達成了目標。","Achievement=成就(名詞)。"],
+["flexible","ˈflɛksɪbl","adj.","彈性的","Our schedule is flexible.","我們的時間很彈性。","Flexibility=彈性(名詞)。"],
+["innovative","ˈɪnəveɪtɪv","adj.","創新的","We need innovative solutions.","我們需要創新解決方案。","Innovation=創新(名詞)。"],
+["expand","ɪkˈspænd","v.","擴展","The company plans to expand.","公司計劃擴展。","Expansion=擴展(名詞)。"],
+["approximately","əˈprɒksɪmətli","adv.","大約","It takes approximately one hour.","大約需要一個小時。","Approx.=縮寫。"],
+["implement","ˈɪmplɪmɛnt","v.","實施","We plan to implement this system.","我們計劃實施這個系統。","Implementation=實施(名詞)。"],
+];
+const AW=[
+["articulate","ɑːrˈtɪkjuleɪt","v./adj.","清晰表達；口齒伶俐","She articulated her ideas well.","她清晰表達了她的想法。","Articulation=清晰表達(名詞)。"],
+["nuance","ˈnjuːɑːns","n.","細微差別","There are subtle nuances here.","這裡有微妙的細微差別。","Nuanced=細膩的。"],
+["compelling","kəmˈpɛlɪŋ","adj.","令人信服的","She made a compelling argument.","她提出了令人信服的論點。","Compel=驅使(動詞)。"],
+["ambiguous","æmˈbɪɡjuəs","adj.","模糊歧義的","The statement was ambiguous.","這個說法是模糊的。","Ambiguity=模糊性(名詞)。"],
+["paradigm","ˈpærədaɪm","n.","典範；範式","This represents a paradigm shift.","這代表了典範轉移。","Paradigm shift=典範轉移。"],
+["rhetoric","ˈrɛtərɪk","n.","修辭；言辭","His speech was full of rhetoric.","他的演講充滿修辭。","Rhetorical=修辭的。"],
+["empirical","ɪmˈpɪrɪkl","adj.","基於實證的","We need empirical evidence.","我們需要實證證據。","Empirically=以實證方式。"],
+["inherent","ɪnˈhɪərənt","adj.","固有的","There are inherent risks.","存在固有的風險。","Inherently=本質上。"],
+["pragmatic","præɡˈmætɪk","adj.","務實的","Take a pragmatic approach.","採取務實的方法。","Pragmatism=實用主義。"],
+["inevitable","ɪnˈɛvɪtəbl","adj.","不可避免的","Change is inevitable.","變化是不可避免的。","Inevitably=不可避免地。"],
+];
+
+// ═══════════════════════════════════════════════════════════
+// QUIZ TEMPLATES – dynamically generated from word bank
+// ═══════════════════════════════════════════════════════════
+function makeQuizFromWords(words) {
+  const qs = [];
+  const pool = [...words];
+  shuffle(pool);
+  const chosen = pool.slice(0, Math.min(10, pool.length));
+  chosen.forEach((w, i) => {
+    const type = i % 3 === 2 ? 'fill' : 'mc';
+    if (type === 'mc') {
+      const wrong = pool.filter(x => x[0] !== w[0]).sort(() => Math.random()-.5).slice(0,3).map(x=>x[3]);
+      const opts = [...wrong, w[3]].sort(() => Math.random()-.5);
+      qs.push({t:'mc', q:`「${w[0]}」的中文意思是？`, opts, ans:opts.indexOf(w[3]), exp: w[6], word: w});
+    } else {
+      qs.push({t:'fill', q:`填空：「${w[4]}」\n_______ (英文單字)`, ans: w[0].split(' ')[0].toLowerCase(), exp: `正確答案：${w[0]}。${w[6]}`, word: w});
+    }
+  });
+  return qs;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCENES (conversation scenarios)
+// ═══════════════════════════════════════════════════════════
+const SCENES = {
+  b:[
+    {name:"在咖啡廳點餐",hints:["Can I have a coffee?","How much is it?","Where is the restroom?","Thank you!"],
+     convos:[
+      {a:"Hello! Welcome! What can I get for you today?",zh:"你好！歡迎光臨！今天想點什麼？"},
+      {a:"Of course! Hot or iced?",zh:"當然！熱的還是冰的？"},
+      {a:"That's $3.50. Anything else?",zh:"總共是3.5元，還需要其他嗎？"},
+      {a:"The restroom is at the back on your left!",zh:"廁所在後面的左邊！"},
+      {a:"You're welcome! Have a wonderful day!",zh:"不客氣！祝你有美好的一天！"},
+    ]},
+    {name:"在超市購物",hints:["Where are the vegetables?","How much?","Do you have...?","Can I get..."],
+     convos:[
+      {a:"Hi! Can I help you find something?",zh:"嗨！需要我幫您找什麼嗎？"},
+      {a:"The vegetables are in aisle 3, on your right.",zh:"蔬菜在第3排，在您的右邊。"},
+      {a:"Those apples are $2 per bag.",zh:"那些蘋果一袋2元。"},
+      {a:"Will that be everything for today?",zh:"今天就這些嗎？"},
+      {a:"Great! Have a good day!",zh:"很好！祝您有美好的一天！"},
+    ]},
+    {name:"問路找地方",hints:["Excuse me!","Where is...?","How far is it?","Thank you!"],
+     convos:[
+      {a:"Hi! How can I help you?",zh:"嗨！有什麼我可以幫您的？"},
+      {a:"Go straight and turn left at the light.",zh:"直走然後在紅綠燈左轉。"},
+      {a:"It's about a 5-minute walk from here.",zh:"從這裡步行約5分鐘。"},
+      {a:"You're welcome! Enjoy your visit!",zh:"不客氣！祝您參觀愉快！"},
+    ]},
+    {name:"在餐廳用餐",hints:["A table for two.","I'd like...","Is this spicy?","The bill please."],
+     convos:[
+      {a:"Good evening! Do you have a reservation?",zh:"晚安！您有預訂嗎？"},
+      {a:"Right this way! Here is your menu.",zh:"請跟我來！這是您的菜單。"},
+      {a:"I recommend the chef's special today.",zh:"我推薦今日主廚特餐。"},
+      {a:"How is everything? Enjoying your meal?",zh:"一切都好嗎？用餐愉快嗎？"},
+      {a:"Here is your bill. Thank you for dining with us!",zh:"這是您的帳單。感謝您來用餐！"},
+    ]},
+  ],
+  i:[
+    {name:"公司討論專案進度",hints:["What's the deadline?","Are you available?","Can we schedule a meeting?","I'd like to confirm..."],
+     convos:[
+      {a:"Good morning! Do you have a moment to discuss the project?",zh:"早安！你有空討論一下專案嗎？"},
+      {a:"The deadline is this Friday at 5pm. Are you on track?",zh:"截止日期是這週五下午五點，進度OK嗎？"},
+      {a:"Let me check my schedule... I'm free Thursday at 2pm.",zh:"讓我查一下時程...週四下午兩點我有空。"},
+      {a:"I'll confirm by email. Thanks for your feedback!",zh:"我會用電子郵件確認。感謝你的回饋！"},
+    ]},
+    {name:"預訂餐廳",hints:["I'd like to make a reservation.","For 4 people.","Do you recommend anything?","Thank you!"],
+     convos:[
+      {a:"Good evening! How can I help you?",zh:"晚安！有什麼我可以幫您的？"},
+      {a:"Of course! For how many people and what date?",zh:"當然！請問幾位，什麼日期？"},
+      {a:"Our salmon pasta is highly recommended!",zh:"我們的鮭魚義大利麵非常受歡迎！"},
+      {a:"Confirmed! We'll see you Saturday at 7pm.",zh:"已確認！週六七點見。"},
+    ]},
+  ],
+  a:[
+    {name:"辯論：科技對社會的影響",hints:["I'd argue that...","The evidence suggests...","That's a compelling point...","From a pragmatic standpoint..."],
+     convos:[
+      {a:"Let's discuss technology's societal impact. What's your opening argument?",zh:"讓我們討論科技對社會的影響，你的開場論點是什麼？"},
+      {a:"Interesting. One could argue the nuance lies in how technology is deployed.",zh:"有趣，有人可能說細微差別在於科技如何被部署。"},
+      {a:"That's compelling. The empirical evidence corroborates both views.",zh:"很有說服力，實證證據支持兩種觀點。"},
+      {a:"A pragmatic approach would reconcile these contradictory viewpoints.",zh:"務實的方法將調和這些矛盾的觀點。"},
+    ]},
+  ]
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE & STORAGE
+// ═══════════════════════════════════════════════════════════
+let lv = 'b';
+let todayWords = [], reviewWords = [], todayQuiz = [];
+let wIdx = 0, rIdx = 0, qIdx = 0, qScore = 0, qAns = 0;
+let chatStep = 0, showZh = true;
+let recognizing = false, SR = null;
+let fcIdx = 0, fcShown = false, fcKnown = 0, fcForgot = 0;
+
+const S = {
+  get xp()     { return parseInt(localStorage.getItem('de_xp')||'0') },
+  set xp(v)    { localStorage.setItem('de_xp', v) },
+  get wv()     { return parseInt(localStorage.getItem('de_wv')||'0') },
+  set wv(v)    { localStorage.setItem('de_wv', v) },
+  get ct()     { return parseInt(localStorage.getItem('de_ct')||'0') },
+  set ct(v)    { localStorage.setItem('de_ct', v) },
+  get tc()     { return parseInt(localStorage.getItem('de_tc')||'0') },
+  set tc(v)    { localStorage.setItem('de_tc', v) },
+  get tq()     { return parseInt(localStorage.getItem('de_tq')||'0') },
+  set tq(v)    { localStorage.setItem('de_tq', v) },
+  get days()   { return JSON.parse(localStorage.getItem('de_days')||'[]') },
+  set days(v)  { localStorage.setItem('de_days', JSON.stringify(v)) },
+  get saved()  { return JSON.parse(localStorage.getItem('de_saved')||'[]') },
+  set saved(v) { localStorage.setItem('de_saved', JSON.stringify(v)) },
+  get maxDay() { return parseInt(localStorage.getItem('de_maxday')||'0') },
+  set maxDay(v){ localStorage.setItem('de_maxday', v) },
+};
+
+function getStartDate() {
+  const stored = localStorage.getItem('de_start');
+  return stored ? new Date(stored) : new Date('2025-01-01');
+}
+function getDay() {
+  const diff = Math.floor((Date.now() - getStartDate().getTime()) / 86400000);
+  return Math.max(1, diff + 1);
+}
+function getDayDate(){ return new Date().toISOString().slice(0,10) }
+function shuffle(a)  { for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a }
+
+function addXP(n, label) {
+  S.xp = S.xp + n;
+  document.getElementById('xp-num').textContent = S.xp;
+  toast(`+${n} XP${label?' '+label:''}`, 'green');
+}
+
+function toast(msg, cls) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (cls ? ' ' + cls : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className='toast', 2000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEVEL & UNLOCK SYSTEM
+// ═══════════════════════════════════════════════════════════
+function getWordBank(l) {
+  if (l==='b') return BW;
+  if (l==='i') return IW;
+  return AW;
+}
+function getDaysForLevel(l) {
+  const bank = getWordBank(l);
+  return Math.ceil(bank.length / 15);
+}
+function getUnlockProgress() {
+  // How many complete days of beginner has user done?
+  const bDays = getDaysForLevel('b'); // 200 for full bank
+  const maxDay = S.maxDay;
+  return Math.min(maxDay, bDays);
+}
+function isLvUnlocked(l) {
+  if (l==='b') return true;
+  const progress = getUnlockProgress();
+  const bDays = getDaysForLevel('b');
+  if (l==='i') return progress >= bDays; // completed all beginner
+  if (l==='a') {
+    const iDays = getDaysForLevel('i');
+    return progress >= bDays + iDays; // simplified
+  }
+  return false;
+}
+function updateLvUI() {
+  const lvls = ['b','i','a'];
+  const classes = ['act-b','act-i','act-a'];
+  lvls.forEach((l,i) => {
+    const el = document.getElementById('lv-'+l);
+    el.className = 'lv' + (l===lv ? ' '+classes[i] : '') + (isLvUnlocked(l)?'':' locked');
+    const li = el.querySelector('.lock-icon');
+    if (li) li.style.display = isLvUnlocked(l) ? 'none' : '';
+  });
+  // Unlock bar
+  const bDays = getDaysForLevel('b');
+  const progress = getUnlockProgress();
+  const pct = Math.min(100, Math.round(progress / bDays * 100));
+  document.getElementById('unlock-fill').style.width = pct + '%';
+  if (lv === 'b' && !isLvUnlocked('i')) {
+    document.getElementById('unlock-text').textContent = `初級進度 ${progress}/${bDays}天 → 完成初級解鎖中級`;
+    const barWrap = document.getElementById('unlock-bar-wrap');
+    if (barWrap) barWrap.style.display = '';
+  } else if (lv === 'i') {
+    document.getElementById('unlock-text').textContent = `中級學習中 → 完成後解鎖高級`;
+  } else if (lv === 'a') {
+    document.getElementById('unlock-text').textContent = `高級學習中！挑戰學術英文`;
+  } else {
+    document.getElementById('unlock-text').textContent = `初級進度 ${progress}/${bDays}天`;
+  }
+}
+function setLv(l) {
+  if (!isLvUnlocked(l)) { toast('完成初級後才能解鎖！', 'amber'); return; }
+  lv = l;
+  wIdx = 0; rIdx = 0; qIdx = 0; qScore = 0; qAns = 0; chatStep = 0;
+  initDailyWords();
+  updateLvUI();
+  renderWord();
+  renderReviewSection();
+  renderQuiz();
+  resetChat();
+}
+
+// ═══════════════════════════════════════════════════════════
+// DAILY WORD SELECTION (15/day, no repeat by day number)
+// ═══════════════════════════════════════════════════════════
+function getDayOffset() {
+  const day = getDay();
+  // Each level has its own day counter starting from day 1 of that level
+  if (lv === 'b') return day - 1;
+  if (lv === 'i') {
+    const bDays = getDaysForLevel('b');
+    return Math.max(0, day - 1 - bDays);
+  }
+  return 0;
+}
+function initDailyWords() {
+  const bank = getWordBank(lv);
+  const PER_DAY = 15;
+  const dayOff = getDayOffset();
+  const start = (dayOff * PER_DAY) % bank.length;
+  const result = [];
+  for (let i = 0; i < PER_DAY; i++) result.push(bank[(start + i) % bank.length]);
+  todayWords = result;
+  // Review = words from 3 days ago
+  const reviewOff = Math.max(0, dayOff - 3);
+  const rStart = (reviewOff * PER_DAY) % bank.length;
+  const rResult = [];
+  for (let i = 0; i < PER_DAY; i++) rResult.push(bank[(rStart + i) % bank.length]);
+  reviewWords = rResult;
+  // Mark today as studied
+  const today = getDayDate();
+  const days = S.days;
+  if (!days.includes(today)) { days.push(today); S.days = days; }
+  // Track max day for unlock
+  if (lv === 'b') {
+    const currentDayOffset = dayOff + 1;
+    if (currentDayOffset > S.maxDay) S.maxDay = currentDayOffset;
+  }
+  // Build quiz from today's words
+  todayQuiz = makeQuizFromWords([...todayWords, ...reviewWords.slice(0,5)]);
+}
+
+// ═══════════════════════════════════════════════════════════
+// VOCAB SCREEN
+// ═══════════════════════════════════════════════════════════
+function renderWord() {
+  const w = todayWords[wIdx % todayWords.length];
+  const day = getDay();
+  const lvLabel = {b:'初級',i:'中級',a:'高級'}[lv];
+  document.getElementById('bd-day').textContent = day;
+  document.getElementById('top-day').textContent = 'Day ' + day;
+  document.getElementById('bd-title').textContent = `今日單字（${lvLabel}）`;
+  document.getElementById('bd-sub').textContent = `每天 15 個 · 明天自動換新單字`;
+  const pct = Math.round((wIdx+1)/todayWords.length*100);
+  document.getElementById('bd-prog').style.width = pct + '%';
+  document.getElementById('widx').textContent = (wIdx % todayWords.length) + 1;
+  document.getElementById('wtot').textContent = todayWords.length;
+  // Tags from pos
+  const tag = w[2].split('/')[0].replace('.','');
+  document.getElementById('wtags').innerHTML = `<span class="wtag">${tag}</span>`;
+  document.getElementById('wword').textContent = w[0];
+  document.getElementById('wph').textContent = w[1];
+  document.getElementById('wpos').textContent = w[2];
+  document.getElementById('wzh').textContent = w[3];
+  document.getElementById('wex').textContent = '"' + w[4] + '"';
+  document.getElementById('wexzh').textContent = w[5];
+  document.getElementById('wtip').textContent = w[6];
+  // Sync pronunciation panel
+  updatePronPanel();
+  // Save button state
+  const saved = S.saved;
+  const isSaved = saved.some(s => s.en === w[0] && s.lv === lv);
+  const sb = document.getElementById('savebtn');
+  const st = document.getElementById('savetxt');
+  sb.className = 'wbtn' + (isSaved ? ' saved' : '');
+  st.textContent = isSaved ? '已儲存 ✓' : '儲存';
+}
+function nextW() { wIdx++; S.wv = S.wv + 1; addXP(3, ''); renderWord(); }
+function prevW() { wIdx = Math.max(0, wIdx-1); renderWord(); }
+function speakWord() { speak(todayWords[wIdx % todayWords.length][0]); }
+function toggleSave() {
+  const w = todayWords[wIdx % todayWords.length];
+  const saved = S.saved;
+  const idx = saved.findIndex(s => s.en === w[0] && s.lv === lv);
+  if (idx >= 0) { saved.splice(idx,1); S.saved = saved; toast('已從單字本移除'); }
+  else { saved.push({en:w[0],ph:w[1],pos:w[2],zh:w[3],ex:w[4],exzh:w[5],tip:w[6],lv}); S.saved = saved; addXP(5,'收藏'); }
+  renderWord();
+}
+
+// Review section
+function renderReviewSection() {
+  const dayOff = getDayOffset();
+  if (dayOff < 3) { document.getElementById('review-section').style.display='none'; return; }
+  document.getElementById('review-section').style.display='';
+  renderReviewWord();
+}
+function renderReviewWord() {
+  const w = reviewWords[rIdx % reviewWords.length];
+  document.getElementById('ridx').textContent = (rIdx % reviewWords.length) + 1;
+  document.getElementById('rtot').textContent = reviewWords.length;
+  document.getElementById('rword').textContent = w[0];
+  document.getElementById('rph').textContent = w[1];
+  document.getElementById('rpos').textContent = w[2];
+  document.getElementById('rzh').textContent = w[3];
+  document.getElementById('rex').textContent = '"' + w[4] + '"';
+  document.getElementById('rexzh').textContent = w[5];
+  // Save button
+  const saved = S.saved;
+  const isSaved = saved.some(s => s.en === w[0] && s.lv === lv);
+  const rsb = document.getElementById('rsavebtn');
+  rsb.className = 'wbtn' + (isSaved ? ' saved' : '');
+  document.getElementById('rsavetxt').textContent = isSaved ? '已儲存 ✓' : '儲存';
+}
+function nextR() { rIdx++; renderReviewWord(); }
+function prevR() { rIdx = Math.max(0, rIdx-1); renderReviewWord(); }
+function speakReview() { speak(reviewWords[rIdx % reviewWords.length][0]); }
+function toggleSaveReview() {
+  const w = reviewWords[rIdx % reviewWords.length];
+  const saved = S.saved;
+  const idx = saved.findIndex(s => s.en === w[0] && s.lv === lv);
+  if (idx >= 0) { saved.splice(idx,1); S.saved = saved; toast('已從單字本移除'); }
+  else { saved.push({en:w[0],ph:w[1],pos:w[2],zh:w[3],ex:w[4],exzh:w[5],tip:w[6],lv}); S.saved = saved; addXP(5,'收藏'); }
+  renderReviewWord();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SAVED WORDS (WORD BANK) SCREEN
+// ═══════════════════════════════════════════════════════════
+function renderSavedScreen() {
+  const saved = S.saved;
+  document.getElementById('saved-count').textContent = saved.length;
+  const fcArea = document.getElementById('flashcard-area');
+  const listArea = document.getElementById('saved-list-area');
+  if (saved.length === 0) {
+    fcArea.innerHTML = '';
+    listArea.innerHTML = `<div class="saved-empty"><div class="ei">📚</div><p>還沒有儲存的單字<br>在單字學習頁點「儲存」<br>把想加深記憶的單字收藏起來</p></div>`;
+    return;
+  }
+  // Flashcard review mode
+  fcArea.innerHTML = `
+    <div class="review-progress" style="display:flex;gap:16px;justify-content:center;align-items:center;margin-bottom:10px;padding:12px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--border2)">
+      <div class="rp-item"><div class="rp-n" style="font-size:20px">${saved.length}</div><div class="rp-l">單字總數</div></div>
+      <div class="rp-item" id="fc-known-box"><div class="rp-n" style="font-size:20px;color:var(--green)" id="fc-known">0</div><div class="rp-l">已熟記</div></div>
+      <div class="rp-item" id="fc-forgot-box"><div class="rp-n" style="font-size:20px;color:var(--red)" id="fc-forgot">0</div><div class="rp-l">需複習</div></div>
+      <button onclick="startFlashcards()" style="background:var(--green);color:#000;border:none;border-radius:var(--rs);padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans)">開始閃卡</button>
+    </div>
+    <div id="fc-main" style="display:none">
+      <div class="fc-wrap">
+        <div class="fc" id="fc" onclick="flipCard()">
+          <div class="fc-front">
+            <div class="fc-word" id="fc-word"></div>
+            <div class="fc-hint">點擊翻面看中文</div>
+          </div>
+          <div class="fc-back">
+            <div class="fc-zh" id="fc-zh"></div>
+            <div class="fc-ex" id="fc-ex"></div>
+          </div>
+        </div>
+      </div>
+      <div class="fc-btns">
+        <button class="fcbtn forgot" onclick="fcAnswer(false)">✗ 還不熟</button>
+        <button class="fcbtn know" onclick="fcAnswer(true)">✓ 已熟記</button>
+      </div>
+      <div style="text-align:center;font-size:12px;color:var(--t3);margin-bottom:14px" id="fc-progress"></div>
+    </div>
+  `;
+  // Word list
+  listArea.innerHTML = `<div class="sectitle">所有儲存的單字</div><div class="saved-list" id="saved-list"></div>`;
+  const listEl = document.getElementById('saved-list');
+  saved.forEach((w, i) => {
+    const div = document.createElement('div');
+    div.className = 'si';
+    div.innerHTML = `
+      <div style="flex:1" onclick="speakSaved('${w.en.replace(/'/g,"\\'")}')">
+        <div class="si-word">${w.en}</div>
+        <div class="si-zh">${w.zh} &nbsp;·&nbsp; <span style="color:var(--t3);font-size:11px">${w.ph}</span></div>
+      </div>
+      <span class="si-lv ${w.lv||'b'}">${{b:'初級',i:'中級',a:'高級'}[w.lv||'b']}</span>
+      <button class="unsave" onclick="unsaveWord(${i})">×</button>
+    `;
+    listEl.appendChild(div);
+  });
+}
+function speakSaved(en) { speak(en); }
+function unsaveWord(i) {
+  const saved = S.saved;
+  saved.splice(i, 1);
+  S.saved = saved;
+  renderSavedScreen();
+  toast('已移除');
+}
+let fcCards = [], fcIdx2 = 0;
+function startFlashcards() {
+  const saved = S.saved;
+  fcCards = shuffle([...saved]);
+  fcIdx2 = 0; fcKnown = 0; fcForgot = 0;
+  document.getElementById('fc-main').style.display = 'block';
+  renderFlashcard();
+}
+function renderFlashcard() {
+  if (fcIdx2 >= fcCards.length) {
+    document.getElementById('fc-main').innerHTML = `<div style="text-align:center;padding:24px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--border2);margin-bottom:14px"><div style="font-size:32px;margin-bottom:10px">🎉</div><div style="font-family:var(--serif);font-size:22px;color:var(--green);margin-bottom:8px;font-style:italic">完成閃卡複習！</div><p style="font-size:14px;color:var(--t2)">已熟記 ${fcKnown} 個，需複習 ${fcForgot} 個</p><button onclick="startFlashcards()" style="margin-top:12px;background:var(--green);color:#000;border:none;border-radius:var(--rs);padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans)">再練一次</button></div>`;
+    return;
+  }
+  const w = fcCards[fcIdx2];
+  const fc = document.getElementById('fc');
+  if (fc) fc.className = 'fc';
+  const fw = document.getElementById('fc-word');
+  const fz = document.getElementById('fc-zh');
+  const fe = document.getElementById('fc-ex');
+  const fp = document.getElementById('fc-progress');
+  if (fw) fw.textContent = w.en;
+  if (fz) fz.textContent = w.zh;
+  if (fe) fe.textContent = w.ex || '';
+  if (fp) fp.textContent = `${fcIdx2 + 1} / ${fcCards.length}`;
+  document.getElementById('fc-known').textContent = fcKnown;
+  document.getElementById('fc-forgot').textContent = fcForgot;
+}
+function flipCard() {
+  const fc = document.getElementById('fc');
+  if (fc) fc.classList.toggle('flipped');
+}
+function fcAnswer(knew) {
+  if (knew) fcKnown++; else fcForgot++;
+  fcIdx2++;
+  renderFlashcard();
+  if (knew) addXP(2,'閃卡');
+}
+
+// ═══════════════════════════════════════════════════════════
+// QUIZ
+// ═══════════════════════════════════════════════════════════
+function renderQuiz() {
+  document.getElementById('qbd-day').textContent = getDay();
+  document.getElementById('qbd-title').textContent = `今日測驗（${{b:'初級',i:'中級',a:'高級'}[lv]}）`;
+  if (qIdx >= todayQuiz.length) {
+    document.getElementById('quiz-card').innerHTML = `<div class="qdone"><h3>測驗完成！</h3><p>得分：${qScore} / ${todayQuiz.length}<br>正確率：${Math.round(qScore/Math.max(1,todayQuiz.length)*100)}%<br><br>明天會有全新的題目！</p></div>`;
+    return;
+  }
+  const q = todayQuiz[qIdx];
+  const pct = Math.round(qIdx / todayQuiz.length * 100);
+  document.getElementById('q-prog').style.width = pct + '%';
+  document.getElementById('q-score').textContent = qScore;
+  document.getElementById('q-ans').textContent = qAns;
+  document.getElementById('q-num').textContent = qIdx + 1;
+  const tp = document.getElementById('q-type');
+  tp.textContent = q.t==='mc'?'選擇題':'填空題';
+  tp.className = 'qtype ' + q.t;
+  document.getElementById('q-q').innerHTML = q.q.replace(/\n/g,'<br>');
+  document.getElementById('q-fb').className = 'qfb';
+  document.getElementById('q-next').style.display = 'none';
+  const body = document.getElementById('q-body'); body.innerHTML = '';
+  if (q.t === 'mc') {
+    const div = document.createElement('div'); div.className = 'qopts';
+    q.opts.forEach((o,i) => {
+      const b = document.createElement('button'); b.className='qopt'; b.textContent=o;
+      b.onclick = () => checkMC(i, b, q); div.appendChild(b);
+    }); body.appendChild(div);
+  } else {
+    const inp = document.createElement('input'); inp.className='qfill-inp'; inp.placeholder='請輸入答案…';
+    inp.onkeydown = e => { if (e.key==='Enter') checkFill(inp,q); };
+    const btn = document.createElement('button');
+    btn.style.cssText='width:100%;padding:12px;background:var(--bg4);border:1.5px solid var(--border);border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--sans);color:var(--text)';
+    btn.textContent = '確認答案';
+    btn.onclick = () => checkFill(inp,q);
+    body.appendChild(inp); body.appendChild(btn);
+  }
+}
+function checkMC(idx, btn, q) {
+  document.querySelectorAll('.qopt').forEach(b=>b.onclick=null);
+  qAns++; S.tq = S.tq + 1;
+  const fb = document.getElementById('q-fb');
+  if (idx === q.ans) {
+    btn.className='qopt ok';
+    fb.className='qfb ok';
+    fb.innerHTML = '✓ 正確！' + q.exp;
+    qScore++; S.tc = S.tc+1; addXP(10,'答對');
+  } else {
+    btn.className='qopt no';
+    document.querySelectorAll('.qopt')[q.ans].className='qopt ok';
+    fb.className='qfb no';
+    fb.innerHTML = '✗ 答錯了。' + q.exp;
+    if (q.word) fb.appendChild(makeQuizSaveBtn(q.word));
+    addXP(2,'');
+  }
+  document.getElementById('q-next').style.display='block';
+}
+function checkFill(inp, q) {
+  const val=inp.value.trim().toLowerCase(), ans=q.ans.toLowerCase();
+  qAns++; S.tq=S.tq+1; inp.disabled=true;
+  const fb = document.getElementById('q-fb');
+  if (val===ans||val===ans.replace(/\s+/g,' ')) {
+    inp.style.borderColor='var(--green)';
+    fb.className='qfb ok';
+    fb.innerHTML = '✓ 正確！' + q.exp;
+    qScore++; S.tc=S.tc+1; addXP(10,'答對');
+  } else {
+    inp.style.borderColor='var(--red)';
+    fb.className='qfb no';
+    fb.innerHTML = '✗ 正確答案：' + q.ans + '。' + q.exp;
+    if (q.word) fb.appendChild(makeQuizSaveBtn(q.word));
+    addXP(2,'');
+  }
+  document.getElementById('q-next').style.display='block';
+}
+function makeQuizSaveBtn(w) {
+  const saved = S.saved;
+  const isSaved = saved.some(s => s.en === w[0] && s.lv === lv);
+  const btn = document.createElement('button');
+  btn.className = 'qsave-btn' + (isSaved ? ' saved' : '');
+  btn.innerHTML = isSaved
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> 已加入單字本 ✓'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> 加入單字本，下次複習';
+  btn.onclick = () => {
+    const s2 = S.saved;
+    const idx = s2.findIndex(s => s.en === w[0] && s.lv === lv);
+    if (idx >= 0) {
+      s2.splice(idx, 1); S.saved = s2;
+      btn.className = 'qsave-btn';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> 加入單字本，下次複習';
+      toast('已移除');
+    } else {
+      s2.push({en:w[0],ph:w[1],pos:w[2],zh:w[3],ex:w[4],exzh:w[5],tip:w[6],lv});
+      S.saved = s2;
+      btn.className = 'qsave-btn saved';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> 已加入單字本 ✓';
+      addXP(5,'收藏');
+    }
+  };
+  return btn;
+}
+function nextQ() { qIdx++; renderQuiz(); }
+
+// ═══════════════════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════════════════
+function getDailyScene() {
+  const all = SCENES[lv] || SCENES.b;
+  return all[getDay() % all.length];
+}
+function resetChat() {
+  const scene = getDailyScene();
+  chatStep = 0;
+  document.getElementById('chat-scene').textContent = scene.name;
+  document.getElementById('chat-box').innerHTML = '';
+  const hintsEl = document.getElementById('chat-hints'); hintsEl.innerHTML = '';
+  scene.hints.forEach(h => {
+    const b = document.createElement('button'); b.className='hpill'; b.textContent=h;
+    b.onclick = () => { document.getElementById('chat-inp').value=h; sendMsg(); };
+    hintsEl.appendChild(b);
+  });
+  addAIMsg(scene.convos[0].a, scene.convos[0].zh, null);
+  chatStep = 1;
+}
+function addAIMsg(en, zh, tip) {
+  const box = document.getElementById('chat-box');
+  const wrap = document.createElement('div'); wrap.className='mw ai';
+  const bub = document.createElement('div'); bub.className='bubble ai'; bub.textContent=en; wrap.appendChild(bub);
+  const pb = document.createElement('button'); pb.className='mplay'; pb.textContent='▶ 聽發音';
+  pb.onclick = () => { speak(en,.85); };
+  wrap.appendChild(pb);
+  if (zh) { const el=document.createElement('div'); el.className='mzh'; el.textContent='中：'+zh; el.style.display=showZh?'':'none'; wrap.appendChild(el); }
+  if (tip) { const el=document.createElement('div'); el.className='mtip'; el.textContent=tip; el.style.display=showZh?'':'none'; wrap.appendChild(el); }
+  box.appendChild(wrap); box.scrollTop=box.scrollHeight;
+}
+function addUserMsg(text) {
+  const box = document.getElementById('chat-box');
+  const wrap = document.createElement('div'); wrap.className='mw me';
+  const bub = document.createElement('div'); bub.className='bubble me'; bub.textContent=text; wrap.appendChild(bub);
+  box.appendChild(wrap); box.scrollTop=box.scrollHeight;
+}
+function getTip(text) {
+  const t = text.toLowerCase();
+  if (/\bi are\b/.test(t)) return '語言提示：I 後要用 am，不是 are';
+  if (/\bhe don't\b/.test(t)) return '語言提示：第三人稱要用 doesn\'t';
+  if (/\bcan i has\b/.test(t)) return '語言提示：應說 "Can I have" 而非 "Can I has"';
+  if (/\bmore better\b/.test(t)) return '語言提示：better 已是比較級，不需加 more';
+  if (/\bgo to home\b/.test(t)) return '語言提示：應說 "go home"，home 前不加 to';
+  return null;
+}
+function sendMsg() {
+  const inp = document.getElementById('chat-inp');
+  const text = inp.value.trim(); if (!text) return;
+  inp.value = ''; stopMic();
+  addUserMsg(text);
+  S.ct = S.ct + 1; addXP(8,'對話');
+  const scene = getDailyScene();
+  setTimeout(() => {
+    const convos = scene.convos;
+    if (chatStep < convos.length) {
+      const c = convos[chatStep];
+      addAIMsg(c.a, c.zh, getTip(text));
+      chatStep++;
+    } else {
+      const ends=[
+        {a:"Great conversation! Keep practicing!",zh:"很棒的對話！繼續練習！"},
+        {a:"Excellent! Your English is improving every day.",zh:"太好了！你的英文每天都在進步。"},
+        {a:"Wonderful practice! Keep it up!",zh:"很棒的練習！繼續保持！"},
+      ];
+      const e = ends[(S.ct) % ends.length];
+      addAIMsg(e.a, e.zh, getTip(text));
+    }
+  }, 600);
+}
+function toggleZh() {
+  showZh = !showZh;
+  const tog = document.getElementById('zh-tog');
+  tog.className = 'tog' + (showZh?' on':'');
+  document.querySelectorAll('.mzh,.mtip').forEach(el=>el.style.display=showZh?'':'none');
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROGRESS SCREEN
+// ═══════════════════════════════════════════════════════════
+function renderProgress() {
+  const seen = Math.min(S.wv, todayWords.length);
+  const vp = Math.round(seen/Math.max(todayWords.length,1)*100);
+  const qp = S.tq ? Math.round(S.tc/S.tq*100) : 0;
+  const bDays = getDaysForLevel('b');
+  const up = Math.min(100, Math.round(S.maxDay/bDays*100));
+  ['v','q','u'].forEach((k,i) => {
+    const pct=[vp,qp,up][i];
+    document.getElementById('pf-'+k).style.width=pct+'%';
+    document.getElementById('pp-'+k).textContent=pct+'%';
+  });
+  document.getElementById('st-words').textContent = S.wv;
+  document.getElementById('st-saved').textContent = S.saved.length;
+  document.getElementById('st-correct').textContent = S.tc;
+  document.getElementById('st-streak').textContent = calcStreak();
+  renderCal();
+}
+function calcStreak() {
+  const days = S.days.slice().sort();
+  if (!days.length) return 1;
+  let streak=1, max=1;
+  for (let i=1;i<days.length;i++) {
+    const d=(new Date(days[i])-new Date(days[i-1]))/86400000;
+    if (d===1) { streak++; max=Math.max(max,streak); } else streak=1;
+  }
+  return max;
+}
+function renderCal() {
+  const grid = document.getElementById('cal-grid'); grid.innerHTML='';
+  const now=new Date(), y=now.getFullYear(), m=now.getMonth();
+  const days=new Date(y,m+1,0).getDate(), today=now.getDate();
+  for (let d=1;d<=days;d++) {
+    const el=document.createElement('div');
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    el.className='cday'+(d===today?' today':S.days.includes(ds)?' done':'');
+    el.textContent=d; grid.appendChild(el);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SPEECH
+// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// ACCENT & SPEECH
+// ═══════════════════════════════════════════════════════════
+let currentAccent = localStorage.getItem('de_accent') || 'us';
+
+function setAccent(a) {
+  currentAccent = a;
+  localStorage.setItem('de_accent', a);
+  document.getElementById('acc-us').className = 'acc-btn' + (a==='us'?' active':'');
+  document.getElementById('acc-uk').className = 'acc-btn' + (a==='uk'?' active':'');
+  toast(a==='us' ? '🇺🇸 美式英語' : '🇬🇧 英式英語');
+}
+
+function getAccentLang() { return currentAccent === 'uk' ? 'en-GB' : 'en-US'; }
+
+function getBestVoice(lang) {
+  const vs = window.speechSynthesis.getVoices();
+  if (lang === 'en-GB') {
+    return vs.find(v => v.lang==='en-GB' && v.name.includes('Daniel'))
+        || vs.find(v => v.lang==='en-GB' && v.name.includes('Kate'))
+        || vs.find(v => v.lang==='en-GB' && v.name.includes('Serena'))
+        || vs.find(v => v.lang.startsWith('en-GB'))
+        || vs.find(v => v.lang.startsWith('en-'));
+  }
+  return vs.find(v => v.lang==='en-US' && v.name.includes('Samantha'))
+      || vs.find(v => v.lang==='en-US' && v.name.includes('Alex'))
+      || vs.find(v => v.lang==='en-US' && v.name.includes('Zira'))
+      || vs.find(v => v.lang.startsWith('en-US'))
+      || vs.find(v => v.lang.startsWith('en-'));
+}
+
+function speak(text, rate) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const lang = getAccentLang();
+  u.lang = lang; u.rate = rate || 0.85; u.pitch = 1;
+  const v = getBestVoice(lang);
+  if (v) u.voice = v;
+  window.speechSynthesis.speak(u);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PRONUNCIATION SCORING ENGINE
+// ═══════════════════════════════════════════════════════════
+let pronRecognizing = false, pronSR = null;
+
+function pronListen() {
+  const w = todayWords[wIdx % todayWords.length];
+  speak(w[0], 0.75);
+  toast('🔊 仔細聽…', 'green');
+}
+
+function pronRecord() {
+  if (pronRecognizing) { pronSR && pronSR.stop(); return; }
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    toast('⚠️ 請使用 Chrome 或 Safari 瀏覽器', 'amber'); return;
+  }
+  const btn = document.getElementById('pron-rec-btn');
+  const txt = document.getElementById('pron-rec-txt');
+  const SRC = window.SpeechRecognition || window.webkitSpeechRecognition;
+  pronSR = new SRC();
+  pronSR.lang = getAccentLang();
+  pronSR.continuous = false;
+  pronSR.interimResults = false;
+  pronSR.maxAlternatives = 5;
+  pronRecognizing = true;
+  btn.className = 'pron-step-btn psb-record recording';
+  txt.textContent = '⏹ 錄音中…';
+
+  pronSR.onresult = (e) => {
+    const results = [];
+    for (let i = 0; i < e.results[0].length; i++) {
+      results.push({
+        transcript: e.results[0][i].transcript.trim().toLowerCase(),
+        confidence: e.results[0][i].confidence
+      });
+    }
+    const target = todayWords[wIdx % todayWords.length][0].toLowerCase();
+    scorePronunciation(target, results);
+  };
+
+  pronSR.onerror = (e) => {
+    pronRecognizing = false;
+    btn.className = 'pron-step-btn psb-record';
+    txt.textContent = '② 開始跟讀';
+    if (e.error === 'no-speech') toast('沒有偵測到聲音，請再試一次', 'amber');
+    else if (e.error === 'not-allowed') toast('請允許麥克風權限', 'amber');
+    else toast('辨識失敗，請再試一次', 'amber');
+  };
+
+  pronSR.onend = () => {
+    pronRecognizing = false;
+    btn.className = 'pron-step-btn psb-record';
+    txt.textContent = '② 再試一次';
+  };
+
+  pronSR.start();
+}
+
+function scorePronunciation(target, results) {
+  // Use best matching result from all alternatives
+  let bestScore = 0, heardText = (results[0] && results[0].transcript) ? results[0].transcript : '';
+  let bestMatch = heardText;
+
+  results.forEach(r => {
+    const s = calcSimilarity(target, r.transcript);
+    const combined = s * 0.7 + (r.confidence || 0.5) * 30;
+    if (combined > bestScore) { bestScore = combined; bestMatch = r.transcript; heardText = r.transcript; }
+  });
+
+  const baseScore = calcSimilarity(target, bestMatch);
+  const confidence = (results[0] && results[0].confidence) ? results[0].confidence : 0.5;
+
+  // Final score: weighted combination
+  let score = Math.round(baseScore * 0.75 + confidence * 25);
+  score = Math.max(0, Math.min(100, score));
+
+  // Syllable analysis
+  const sylData = analyzeSyllables(target, bestMatch);
+
+  showPronScore(score, heardText, target, sylData, confidence);
+  if (score >= 80) addXP(5, '發音棒👍');
+  else if (score >= 60) addXP(2, '');
+}
+
+function calcSimilarity(a, b) {
+  // Levenshtein distance-based similarity 0-100
+  a = a.toLowerCase().trim();
+  b = b.toLowerCase().trim();
+  if (a === b) return 100;
+  if (!a || !b) return 0;
+
+  // Phonetic normalization: handle common accent variants
+  const normalize = (s) => s
+    .replace(/ə/g, 'a').replace(/ɪ/g, 'i').replace(/ʊ/g, 'u')
+    .replace(/t$/,'').replace(/d$/,'') // dropped final consonants
+    .replace(/tion/g,'shun').replace(/ture/g,'cher');
+
+  const na = normalize(a), nb = normalize(b);
+
+  const m = na.length, n = nb.length;
+  const dp = Array.from({length:m+1}, (_,i) => Array.from({length:n+1}, (_,j) => i===0?j:j===0?i:0));
+  for (let i=1;i<=m;i++) for (let j=1;j<=n;j++)
+    dp[i][j] = na[i-1]===nb[j-1] ? dp[i-1][j-1] : 1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+
+  const maxLen = Math.max(m, n);
+  const dist = dp[m][n];
+  const similarity = Math.round((1 - dist / maxLen) * 100);
+
+  // Bonus: starts with same letter(s)
+  let bonus = 0;
+  if (na[0] === nb[0]) bonus += 5;
+  if (na.slice(0,3) === nb.slice(0,3)) bonus += 5;
+
+  return Math.min(100, similarity + bonus);
+}
+
+function analyzeSyllables(target, heard) {
+  // Split target word into syllable-like chunks for visual feedback
+  const chunks = splitSyllables(target);
+  const heardNorm = heard.toLowerCase();
+  return chunks.map(syl => {
+    const idx = heardNorm.indexOf(syl.toLowerCase());
+    const score = calcSimilarity(syl, heardNorm.slice(Math.max(0,idx), idx + syl.length + 2));
+    return { syl, score: score > 70 ? 'good' : score > 40 ? 'ok' : 'bad' };
+  });
+}
+
+function splitSyllables(word) {
+  // Heuristic syllable splitting
+  const vowels = 'aeiouy';
+  const w = word.toLowerCase();
+  const chunks = [];
+  let cur = '';
+  for (let i = 0; i < w.length; i++) {
+    cur += w[i];
+    if (vowels.includes(w[i]) && i < w.length - 1 && !vowels.includes(w[i+1])) {
+      cur += w[i+1]; i++;
+      chunks.push(cur); cur = '';
+    } else if (cur.length >= 3 && !vowels.includes(w[i])) {
+      chunks.push(cur); cur = '';
+    }
+  }
+  if (cur) chunks.push(cur);
+  return chunks.length > 0 ? chunks : [word];
+}
+
+function showPronScore(score, heard, target, sylData, confidence) {
+  const wrap = document.getElementById('pron-score-wrap');
+  wrap.className = 'pron-score-wrap show';
+
+  // Animate ring
+  const circle = document.getElementById('score-circle');
+  const circumference = 239;
+  const offset = circumference - (score / 100) * circumference;
+  const color = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--amber)' : 'var(--red)';
+  circle.style.stroke = color;
+  setTimeout(() => circle.style.strokeDashoffset = offset, 50);
+
+  // Score number
+  const numEl = document.getElementById('score-num');
+  numEl.style.color = color;
+  let cur = 0;
+  const interval = setInterval(() => {
+    cur = Math.min(cur + 3, score);
+    numEl.textContent = cur;
+    if (cur >= score) clearInterval(interval);
+  }, 20);
+
+  // Label
+  const labels = score >= 90 ? ['完美！','PERFECT'] : score >= 80 ? ['非常好','GREAT'] : score >= 70 ? ['不錯喔','GOOD'] : score >= 55 ? ['繼續練','KEEP IT UP'] : ['再加油','PRACTICE'];
+  document.getElementById('score-lbl').textContent = labels[0];
+
+  // Heard text
+  document.getElementById('heard-span').textContent = heard || '（沒有聽到）';
+
+  // Syllable breakdown
+  const sylRow = document.getElementById('syl-row');
+  sylRow.innerHTML = sylData.map(s => `<span class="syl ${s.score}">${s.syl}</span>`).join('');
+
+  // Message
+  const msgEl = document.getElementById('pron-msg');
+  const tipsEl = document.getElementById('pron-tips');
+
+  if (score >= 90) {
+    msgEl.textContent = '🎉 發音非常標準！語音辨識完整地辨識出你說的單字。';
+    tipsEl.innerHTML = '<li>✅ 母音清楚準確</li><li>✅ 子音發音到位</li><li>✅ 重音位置正確</li>';
+  } else if (score >= 80) {
+    msgEl.textContent = '👍 發音很好！整體非常接近標準發音，細節再注意一下。';
+    tipsEl.innerHTML = buildTips(target, heard, score);
+  } else if (score >= 60) {
+    msgEl.textContent = '💪 有進步空間！先聽範例再模仿，特別注意重音位置。';
+    tipsEl.innerHTML = buildTips(target, heard, score);
+  } else {
+    msgEl.textContent = '🔄 建議多練幾次！先慢慢聽清楚每個音，再跟著說。';
+    tipsEl.innerHTML = buildTips(target, heard, score);
+  }
+}
+
+function buildTips(target, heard, score) {
+  const tips = [];
+  const t = target.toLowerCase(), h = (heard||'').toLowerCase();
+
+  // Common issues detection
+  if (t.endsWith('ed') && !h.endsWith('ed') && !h.endsWith('d') && !h.endsWith('t')) tips.push('💡 注意結尾 -ed 的發音（/d/、/t/ 或 /ɪd/）');
+  if (t.endsWith('ing') && !h.endsWith('ing') && !h.endsWith('in')) tips.push('💡 -ing 結尾要清楚，不要省略');
+  if (t.includes('th') && !h.includes('th') && !h.includes('d') && !h.includes('t')) tips.push('💡 "th" 要把舌尖放在上下齒之間發音');
+  if (t.length > 6 && score < 70) tips.push('💡 長單字可以拆開音節，一段一段練習');
+  if (score < 60) tips.push('💡 建議：先點「聽範例」3次，熟悉發音後再跟讀');
+  if (currentAccent === 'uk') tips.push('💡 英式英語的母音有時和美式不同，例如 "can\'t" 發 /kɑːnt/');
+  if (tips.length === 0) tips.push('💡 音節重音再加強，輕重分明更自然');
+
+  return tips.map(t => `<li>${t}</li>`).join('');
+}
+
+function pronReset() {
+  document.getElementById('pron-score-wrap').className = 'pron-score-wrap';
+  document.getElementById('pron-rec-txt').textContent = '② 開始跟讀';
+  document.getElementById('score-circle').style.strokeDashoffset = '239';
+}
+
+function updatePronPanel() {
+  const w = todayWords[wIdx % todayWords.length];
+  const el = document.getElementById('pron-word');
+  const ph = document.getElementById('pron-ph');
+  if (el) el.textContent = w[0];
+  if (ph) ph.textContent = w[1];
+  pronReset();
+}
+function toggleMic() {
+  if (!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)) { toast('請用 Chrome 啟用語音'); return; }
+  if (recognizing) { SR&&SR.stop(); return; }
+  const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
+  SR=new SRC(); SR.lang='en-US'; SR.continuous=false; SR.interimResults=true;
+  recognizing=true;
+  const btn=document.getElementById('mic-btn');
+  btn.className='micbtn on'; btn.innerHTML='<span>🔴 聆聽中</span>';
+  SR.onresult=e=>{ let t=''; for(let i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript; document.getElementById('chat-inp').value=t; };
+  SR.onerror=()=>{ stopMic(); toast('語音辨識失敗'); };
+  SR.onend=()=>{ stopMic(); const v=document.getElementById('chat-inp').value.trim(); if(v) sendMsg(); };
+  SR.start();
+}
+function stopMic() {
+  recognizing=false; SR&&SR.stop();
+  const btn=document.getElementById('mic-btn');
+  btn.className='micbtn';
+  btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg> 語音';
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function goScreen(s) {
+  document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nv').forEach(el=>el.classList.remove('active'));
+  document.getElementById('screen-'+s).classList.add('active');
+  document.getElementById('nav-'+s).classList.add('active');
+  if (s==='saved') renderSavedScreen();
+  if (s==='prog') { renderProgress(); initSettingsUI(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS & RESET
+// ═══════════════════════════════════════════════════════════
+function setStartDate() {
+  const input = document.getElementById('start-date-input');
+  const val = input.value;
+  if (!val) { toast('請選擇日期', 'amber'); return; }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) { toast('日期格式錯誤', 'amber'); return; }
+  localStorage.setItem('de_start', val);
+  // Reset maxDay so unlock recalculates
+  S.maxDay = 0;
+  // Reinit
+  initDailyWords();
+  updateLvUI();
+  renderWord();
+  renderReviewSection();
+  renderQuiz();
+  renderProgress();
+  const day = getDay();
+  document.getElementById('start-date-status').textContent = `✓ 已設定！現在是 Day ${day}`;
+  toast('起始日期已更新！Day ' + day, 'green');
+}
+function unlockLevel(l) {
+  const msg = l==='i' ? '解鎖中級' : '解鎖高級';
+  if (!confirm(`確定要手動${msg}嗎？\n（這會設定你已完成足夠的初級天數）`)) return;
+  const bDays = getDaysForLevel('b');
+  if (l==='i') {
+    S.maxDay = bDays;
+  } else {
+    S.maxDay = bDays + getDaysForLevel('i');
+  }
+  updateLvUI();
+  renderProgress();
+  toast(`🔓 ${msg}成功！`, 'green');
+}
+function resetStats() {
+  if (!confirm('確定要重置所有學習紀錄嗎？\n（XP、答題紀錄、對話紀錄、學習天數）\n\n儲存的單字本不會被刪除。')) return;
+  const savedWords = S.saved; // Keep saved words
+  localStorage.removeItem('de_xp');
+  localStorage.removeItem('de_wv');
+  localStorage.removeItem('de_ct');
+  localStorage.removeItem('de_tc');
+  localStorage.removeItem('de_tq');
+  localStorage.removeItem('de_days');
+  localStorage.removeItem('de_maxday');
+  S.saved = savedWords; // Restore
+  document.getElementById('xp-num').textContent = '0';
+  initDailyWords();
+  updateLvUI();
+  renderWord();
+  renderReviewSection();
+  renderQuiz();
+  renderProgress();
+  toast('學習紀錄已重置', 'amber');
+}
+function resetAll() {
+  if (!confirm('⚠️ 確定要完全重置嗎？\n\n這會刪除所有資料，包含儲存的單字本，無法復原！')) return;
+  const keys = ['de_xp','de_wv','de_ct','de_tc','de_tq','de_days','de_maxday','de_saved','de_start'];
+  keys.forEach(k => localStorage.removeItem(k));
+  document.getElementById('xp-num').textContent = '0';
+  initDailyWords();
+  updateLvUI();
+  renderWord();
+  renderReviewSection();
+  renderQuiz();
+  renderProgress();
+  toast('✓ 所有資料已清除，重新開始！', 'amber');
+}
+function initSettingsUI() {
+  // Set current start date in input
+  const stored = localStorage.getItem('de_start');
+  const input = document.getElementById('start-date-input');
+  if (input) {
+    input.value = stored || '2025-01-01';
+    const statusEl = document.getElementById('start-date-status');
+    if (statusEl) statusEl.textContent = stored ? `目前起始日：${stored}，今天是 Day ${getDay()}` : `預設起始日：2025-01-01，今天是 Day ${getDay()}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════
+window.speechSynthesis && window.speechSynthesis.getVoices();
+// Restore accent
+setAccent(currentAccent);
+document.getElementById('xp-num').textContent = S.xp;
+// Track today
+const _today = getDayDate();
+const _days = S.days;
+if (!_days.includes(_today)) { _days.push(_today); S.days = _days; }
+// Init
+lv = 'b';
+initDailyWords();
+updateLvUI();
+renderWord();
+renderReviewSection();
+renderQuiz();
+resetChat();
+initSettingsUI();
+// iOS hint
+if (!window.navigator.standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
+  setTimeout(() => toast('💡 分享 → 加入主畫面，像 App 使用！'), 3500);
+}
+</script>
+</body>
+</html>
