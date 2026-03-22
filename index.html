@@ -3627,6 +3627,47 @@ initChat();
 initSpeechRateUI();
 document.getElementById('xp-num').textContent = S.xp;
 
+// ── 自動偵測新的一天 ──────────────────────────
+var _lastCheckedDate = new Date().toISOString().slice(0, 10);
+
+function checkDayChange() {
+  var today = new Date().toISOString().slice(0, 10);
+  if (today !== _lastCheckedDate) {
+    _lastCheckedDate = today;
+    // 新的一天：重新初始化單字、測驗
+    wIdx = 0;
+    initDaily();
+    renderWord();
+    renderReview();
+    buildQuiz();
+    renderCal();
+    document.getElementById('xp-num').textContent = S.xp;
+    // 更新頂部日期顯示
+    var dayEl = document.getElementById('top-day');
+    if (dayEl) dayEl.textContent = 'Day ' + getDay();
+    toast('🌅 新的一天！單字與測驗已更新');
+  }
+}
+
+// 每分鐘檢查一次日期
+setInterval(checkDayChange, 60000);
+
+// 從背景切回前景時立刻檢查
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    checkDayChange();
+  }
+});
+
+// iOS 從其他 App 切回時觸發
+window.addEventListener('pageshow', function() {
+  checkDayChange();
+});
+
+window.addEventListener('focus', function() {
+  checkDayChange();
+});
+
 // iOS "Add to Home Screen" tip
 if (!window.navigator.standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
   setTimeout(function(){ toast('💡 分享 → 加入主畫面，像 App 一樣使用'); }, 3500);
