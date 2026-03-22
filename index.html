@@ -537,6 +537,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
           <button class="set-btn amber" onclick="unlockLv('i')">解鎖中級</button>
           <button class="set-btn amber" onclick="unlockLv('a')">解鎖高級</button>
         </div>
+        <div class="set-row" style="margin-top:4px">
+          <label>語速</label>
+          <div style="display:flex;gap:6px">
+            <button id="spd-slow" class="set-btn" onclick="setSpeechRate(0.6)" style="flex:1">🐢 慢</button>
+            <button id="spd-normal" class="set-btn green" onclick="setSpeechRate(0.9)" style="flex:1">🚶 正常</button>
+            <button id="spd-fast" class="set-btn" onclick="setSpeechRate(1.3)" style="flex:1">🐇 快</button>
+          </div>
+        </div>
         <div style="display:flex;gap:8px;margin-top:4px">
           <button class="set-btn amber" style="flex:1" onclick="resetStats()">重置紀錄</button>
           <button class="set-btn red" style="flex:1" onclick="resetAll()">完全重置</button>
@@ -2820,21 +2828,74 @@ function setAccent(a) {
   document.getElementById('acc-us').className = a === 'us' ? 'on' : '';
   document.getElementById('acc-uk').className = a === 'uk' ? 'on' : '';
 }
+
+function setSpeechRate(r) {
+  S.s('de_spd', r);
+  var ids = {0.6:'spd-slow', 0.9:'spd-normal', 1.3:'spd-fast'};
+  ['spd-slow','spd-normal','spd-fast'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.className = 'set-btn' + (ids[r] === id ? ' green' : ''); }
+  });
+  speak('Speed set', r);
+}
+function initSpeechRateUI() {
+  var r = parseFloat(S.g('de_spd', 0.9));
+  var ids = {0.6:'spd-slow', 0.9:'spd-normal', 1.3:'spd-fast'};
+  var activeId = ids[r] || 'spd-normal';
+  ['spd-slow','spd-normal','spd-fast'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.className = 'set-btn' + (id === activeId ? ' green' : '');
+  });
+}
+// Cache voices on first load
+var _voicesCache = [];
+function _loadVoices() {
+  var v = speechSynthesis.getVoices();
+  if (v.length) _voicesCache = v;
+  return _voicesCache;
+}
+if (speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = function() { _voicesCache = speechSynthesis.getVoices(); };
+}
 function getBestVoice(lang) {
-  var voices = speechSynthesis.getVoices();
-  var matches = voices.filter(function(v) { return v.lang.startsWith(lang); });
-  return matches[0] || null;
+  var voices = _loadVoices();
+  if (!voices.length) return null;
+  // Prefer local/default voice for the accent
+  var local = voices.filter(function(v) { return v.lang === lang && v.localService; });
+  if (local.length) return local[0];
+  var exact = voices.filter(function(v) { return v.lang === lang; });
+  if (exact.length) return exact[0];
+  var prefix = voices.filter(function(v) { return v.lang.startsWith(lang.substring(0,5)); });
+  if (prefix.length) return prefix[0];
+  // Fallback to any English
+  var eng = voices.filter(function(v) { return v.lang.startsWith('en'); });
+  return eng[0] || voices[0] || null;
 }
 function speak(text, rate) {
-  if (!text) return;
-  speechSynthesis.cancel();
+  if (!text || !window.speechSynthesis) return;
   var lang = currentAccent === 'uk' ? 'en-GB' : 'en-US';
-  var utt = new SpeechSynthesisUtterance(text);
-  utt.lang = lang;
-  utt.rate = rate || 0.9;
-  var v = getBestVoice(lang);
-  if (v) utt.voice = v;
-  speechSynthesis.speak(utt);
+  var spd = (rate !== undefined && rate !== null) ? rate : parseFloat(S.g('de_spd', 0.9));
+  function _doSpeak() {
+    speechSynthesis.cancel();
+    setTimeout(function() {
+      var utt = new SpeechSynthesisUtterance(text);
+      utt.lang = lang;
+      utt.rate = spd;
+      var v = getBestVoice(lang);
+      if (v) utt.voice = v;
+      utt.onerror = function(e) { console.warn('TTS error:', e.error); };
+      speechSynthesis.speak(utt);
+    }, 50);
+  }
+  var voices = _loadVoices();
+  if (voices.length) {
+    _doSpeak();
+  } else {
+    speechSynthesis.onvoiceschanged = function() {
+      _voicesCache = speechSynthesis.getVoices();
+      _doSpeak();
+    };
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -2901,7 +2962,7 @@ function renderWord() {
         zhSpan.textContent = zh;
         chip.appendChild(zhSpan);
       }
-      chip.onclick = (function(e, s) { return function() { speak(e, 0.85); s.className = 'en playing'; setTimeout(function(){ s.className='en'; }, 1500); }; })(en, enSpan);
+      chip.onclick = (function(e, s) { return function() { speak(e); s.className = 'en playing'; setTimeout(function(){ s.className='en'; }, 1500); }; })(en, enSpan);
       phEl.appendChild(chip);
     });
   } else {
@@ -2942,7 +3003,7 @@ function prevW() {
 function speakWord() { speak(todayWords[wIdx % todayWords.length][0]); }
 function speakExample() {
   var w = todayWords[wIdx % todayWords.length];
-  speak(w[4].replace(/^\"|\"$/g, ''), 0.8);
+  speak(w[4].replace(/^\"|\"$/g, ''));
   toast('🔊 朗讀例句');
 }
 function toggleSave() {
@@ -3007,7 +3068,7 @@ function renderReview() {
 // ══════════════════════════════════════════════
 // PRONUNCIATION
 // ══════════════════════════════════════════════
-function pronListen() { speak(todayWords[wIdx % todayWords.length][0], 0.7); }
+function pronListen() { speak(todayWords[wIdx % todayWords.length][0]); }
 function toggleRec() {
   if (!isRecording) startRec(); else stopRec();
 }
@@ -3397,7 +3458,7 @@ function appendMsg(text, zh, who) {
   }
   document.getElementById('chat-msgs').appendChild(el);
   if (el.scrollIntoView) el.scrollIntoView({behavior:'smooth',block:'nearest'});
-  if (who === 'ai') speak(text, 0.85);
+  if (who === 'ai') speak(text);
 }
 function sendMsg() {
   var inp = document.getElementById('chat-inp');
@@ -3563,6 +3624,7 @@ renderWord();
 renderReview();
 buildQuiz();
 initChat();
+initSpeechRateUI();
 document.getElementById('xp-num').textContent = S.xp;
 
 // iOS "Add to Home Screen" tip
