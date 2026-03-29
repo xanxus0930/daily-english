@@ -14,7 +14,7 @@
 :root {
   --bg:#0f1117; --bg2:#181c25; --bg3:#1f2433;
   --border:#2a2f3d; --border2:#232839;
-  --text:#e8eaf0; --t2:#a0a8c0; --t3:#5a6180;
+  --text:#e8eaf0; --text2:#a0a8c0; --t2:#a0a8c0; --t3:#5a6180;
   --green:#4ade80; --gl:rgba(74,222,128,.13); --gb:rgba(74,222,128,.3);
   --amber:#fbbf24; --al:rgba(251,191,36,.13); --ab:rgba(251,191,36,.3);
   --blue:#60a5fa; --bl:rgba(96,165,250,.13); --bb:rgba(96,165,250,.3);
@@ -227,6 +227,49 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .toast{position:fixed;bottom:calc(80px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 18px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:all .25s;white-space:nowrap;z-index:999}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ── DAILY GOAL BAR ── */
+.daily-goal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:12px}
+.daily-goal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.daily-goal-lbl{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--green)}
+.daily-goal-ct{font-size:11px;color:var(--t3)}
+.daily-goal-track{height:6px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.daily-goal-fill{height:100%;background:var(--green);border-radius:99px;transition:width .4s ease}
+
+/* ── CELEBRATION OVERLAY ── */
+.celebrate{position:fixed;inset:0;background:rgba(15,17,23,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}
+.celebrate.show{opacity:1;pointer-events:all}
+.celebrate-emoji{font-size:72px;margin-bottom:16px;animation:bounce .6s ease infinite alternate}
+.celebrate-title{font-size:24px;font-weight:700;color:var(--text);margin-bottom:8px}
+.celebrate-sub{font-size:14px;color:var(--t2);margin-bottom:28px;text-align:center;line-height:1.6}
+.celebrate-btn{padding:14px 32px;border-radius:var(--r2);background:var(--green);border:none;color:#0f1117;font-weight:700;font-size:15px;cursor:pointer;font-family:var(--sans)}
+@keyframes bounce{from{transform:scale(1) translateY(0)}to{transform:scale(1.1) translateY(-8px)}}
+.confetti-wrap{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.conf{position:absolute;width:8px;height:8px;border-radius:2px;opacity:0;animation:fall linear forwards}
+@keyframes fall{0%{opacity:1;transform:translateY(-10px) rotate(0deg)}100%{opacity:0;transform:translateY(100vh) rotate(720deg)}}
+
+/* ── BADGES ── */
+.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.badge{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--border)}
+.badge.earned{background:var(--gl);border-color:var(--gb)}
+.badge-icon{font-size:24px;filter:grayscale(1);opacity:.3}
+.badge.earned .badge-icon{filter:none;opacity:1}
+.badge-name{font-size:9px;color:var(--t3);text-align:center;line-height:1.3}
+.badge.earned .badge-name{color:var(--green)}
+
+/* ── GRACE DAY ── */
+.grace-banner{background:var(--al);border:1px solid var(--ab);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.grace-banner p{font-size:13px;color:var(--amber);flex:1;line-height:1.4}
+.grace-btn{padding:6px 14px;border-radius:99px;background:var(--amber);border:none;color:#0f1117;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap}
+
+/* ── WEEK CHART ── */
+.week-chart{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.week-bars{display:flex;align-items:flex-end;gap:6px;height:60px;margin-top:10px}
+.week-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.week-bar{width:100%;border-radius:4px 4px 0 0;background:var(--bg3);min-height:4px;transition:height .4s ease}
+.week-bar.active{background:var(--green)}
+.week-bar.today{background:var(--amber)}
+.week-day-lbl{font-size:9px;color:var(--t3)}
+
 * { -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
 button { user-select: none; -webkit-user-select: none; }
 .screens { overscroll-behavior: contain; }
@@ -253,7 +296,24 @@ button { user-select: none; -webkit-user-select: none; }
 
     <!-- VOCAB -->
     <div class="screen on" id="screen-vocab">
-      <!-- day banner -->
+
+      <!-- Grace Day Banner (hidden by default) -->
+      <div class="grace-banner" id="grace-banner" style="display:none">
+        <span style="font-size:22px">⚡</span>
+        <p>昨天沒開，連續天數差點中斷！現在補打卡可以維持連續紀錄。</p>
+        <button class="grace-btn" onclick="claimGraceDay()">補打卡</button>
+      </div>
+
+      <!-- Daily Goal Bar -->
+      <div class="daily-goal">
+        <div class="daily-goal-top">
+          <span class="daily-goal-lbl">今日進度</span>
+          <span class="daily-goal-ct" id="goal-ct">0 / 15 單字</span>
+        </div>
+        <div class="daily-goal-track">
+          <div class="daily-goal-fill" id="goal-fill" style="width:0%"></div>
+        </div>
+      </div>
       <div class="card" style="margin-bottom:14px">
         <div class="card-body" style="padding:14px 16px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -329,7 +389,7 @@ button { user-select: none; -webkit-user-select: none; }
         </button>
         <div class="story-body" id="story-body">
           <p id="wstory"></p>
-          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)"><div style="font-size:10px;color:var(--t3);margin-bottom:4px;letter-spacing:.05em">中文對照</div><p id="wstory-zh" style="font-size:13px;color:var(--amber);margin:0;line-height:1.7"></p></div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)"><div style="font-size:10px;color:var(--t3);margin-bottom:4px;letter-spacing:.05em">記憶提示</div><p id="wstory-zh" style="font-size:13px;color:var(--amber);margin:0;line-height:1.7"></p></div>
         </div>
       </div>
 
@@ -395,7 +455,10 @@ button { user-select: none; -webkit-user-select: none; }
           <div class="fc-back" id="fc-back" style="display:none;text-align:center">
             <div class="w-zh" id="fc-zh" style="font-size:22px;font-weight:700;margin-bottom:10px"></div>
             <div class="w-ex" id="fc-ex" style="font-size:13px;color:var(--t2);font-style:italic;text-align:left;border-left:2px solid var(--border);padding-left:10px"></div>
-            <div class="fc-hint" style="margin-top:14px">選擇記憶狀態</div>
+            <button onclick="event.stopPropagation();speak(document.getElementById('fc-en').textContent)" style="margin-top:14px;display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:99px;background:var(--gl);border:1px solid var(--gb);color:var(--green);font-size:12px;cursor:pointer;font-family:var(--sans)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>聆聽發音
+            </button>
+            <div class="fc-hint" style="margin-top:10px">選擇記憶狀態</div>
           </div>
         </div>
         <div class="fc-btns" id="fc-btns" style="display:none">
@@ -417,20 +480,20 @@ button { user-select: none; -webkit-user-select: none; }
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 4px">
         <div style="background:var(--bg2);border-radius:var(--r2);padding:10px 8px;text-align:center">
-          <div style="font-size:18px;font-weight:500">2069</div>
-          <div style="font-size:10px;color:var(--text2);margin-top:2px">Total</div>
+          <div style="font-size:18px;font-weight:500" id="stat-total">—</div>
+          <div style="font-size:10px;color:var(--t2);margin-top:2px">Total</div>
         </div>
         <div style="background:var(--bg2);border-radius:var(--r2);padding:10px 8px;text-align:center">
-          <div style="font-size:18px;font-weight:500;color:#3b82f6">1746</div>
-          <div style="font-size:10px;color:var(--text2);margin-top:2px">Beginner</div>
+          <div style="font-size:18px;font-weight:500;color:#4ade80" id="stat-b">—</div>
+          <div style="font-size:10px;color:var(--t2);margin-top:2px">Beginner</div>
         </div>
         <div style="background:var(--bg2);border-radius:var(--r2);padding:10px 8px;text-align:center">
-          <div style="font-size:18px;font-weight:500;color:#8b5cf6">225</div>
-          <div style="font-size:10px;color:var(--text2);margin-top:2px">Intermediate</div>
+          <div style="font-size:18px;font-weight:500;color:#fbbf24" id="stat-i">—</div>
+          <div style="font-size:10px;color:var(--t2);margin-top:2px">Intermediate</div>
         </div>
         <div style="background:var(--bg2);border-radius:var(--r2);padding:10px 8px;text-align:center">
-          <div style="font-size:18px;font-weight:500;color:#f59e0b">98</div>
-          <div style="font-size:10px;color:var(--text2);margin-top:2px">Advanced</div>
+          <div style="font-size:18px;font-weight:500;color:#f87171" id="stat-a">—</div>
+          <div style="font-size:10px;color:var(--t2);margin-top:2px">Advanced</div>
         </div>
       </div>
       <!-- Category filter chips -->
@@ -473,6 +536,7 @@ button { user-select: none; -webkit-user-select: none; }
         <div class="stat-box"><div class="stat-val" id="stat-days" style="color:var(--blue)">0</div><div class="stat-lbl">學習天數</div></div>
         <div class="stat-box"><div class="stat-val" id="stat-saved" style="color:var(--text)">0</div><div class="stat-lbl">已儲存</div></div>
         <div class="stat-box"><div class="stat-val" id="stat-acc" style="color:var(--green)">--</div><div class="stat-lbl">測驗準確率</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-streak" style="color:var(--red)">0</div><div class="stat-lbl">🔥 最長連續</div></div>
       </div>
       <div class="lv-bar">
         <div class="lv-label"><span style="font-weight:600">解鎖進度</span><span id="lv-pct" style="color:var(--t3)"></span></div>
@@ -489,6 +553,18 @@ button { user-select: none; -webkit-user-select: none; }
           <span id="cal-label" style="font-size:12px;color:var(--t3)"></span>
         </div>
         <div class="cal-grid" id="cal-grid"></div>
+      </div>
+
+      <!-- Week Activity Chart -->
+      <div class="week-chart">
+        <span class="section-label">本週學習</span>
+        <div class="week-bars" id="week-bars"></div>
+      </div>
+
+      <!-- Badges -->
+      <div class="cal-wrap">
+        <span class="section-label">成就徽章</span>
+        <div class="badge-grid" id="badge-grid" style="margin-top:10px"></div>
       </div>
       <div class="settings-section">
         <h3>⚙️ 設定</h3>
@@ -545,6 +621,15 @@ button { user-select: none; -webkit-user-select: none; }
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Celebration Overlay -->
+  <div class="celebrate" id="celebrate">
+    <div class="confetti-wrap" id="confetti-wrap"></div>
+    <div class="celebrate-emoji" id="cel-emoji">🎉</div>
+    <div class="celebrate-title" id="cel-title">今日單字完成！</div>
+    <div class="celebrate-sub" id="cel-sub">太棒了！你看完了今天所有 15 個單字<br>去測驗一下吧！</div>
+    <button class="celebrate-btn" id="cel-btn" onclick="closeCelebrate()">繼續學習 →</button>
+  </div>
 </div>
 <script>
 var WORDS = {
@@ -2646,7 +2731,13 @@ var S = {
   get qacc()   { return this.g('de_qacc', {total:0, correct:0}); },
   set qacc(v)  { this.s('de_qacc', v); },
   get apiKey() { return this.g('de_apikey', ''); },
-  set apiKey(v){ this.s('de_apikey', v); }
+  set apiKey(v){ this.s('de_apikey', v); },
+  get weakWords(){ return this.g('de_weak', {}); },
+  set weakWords(v){ this.s('de_weak', v); },
+  get badges()  { return this.g('de_badges', []); },
+  set badges(v) { this.s('de_badges', v); },
+  get longestStreak(){ return this.g('de_lstreak', 0); },
+  set longestStreak(v){ this.s('de_lstreak', v); }
 };
 
 var lv = 'b';
@@ -2660,6 +2751,8 @@ var isRecording = false;
 var fcIdx = 0;
 var fcMode = false;
 var fcDeck = [];
+var dailySeenKey = '';
+var dailySeenCount = 0;
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
@@ -2704,18 +2797,43 @@ function initDaily() {
   var start = (off * PER) % Math.max(1, bank.length);
   todayWords = [];
   for (var i = 0; i < PER; i++) todayWords.push(bank[(start + i) % bank.length]);
+
+  // Inject weak words: replace last 3 slots with most-wrong words
+  var ww = S.weakWords;
+  var weakList = Object.keys(ww).sort(function(a,b){ return ww[b] - ww[a]; }).slice(0,3);
+  var bankMap = {};
+  bank.forEach(function(w){ bankMap[w[0]] = w; });
+  weakList.forEach(function(en, i) {
+    if (bankMap[en]) todayWords[PER - 1 - i] = bankMap[en];
+  });
+
   var rOff = Math.max(0, off - 3);
   var rStart = (rOff * PER) % Math.max(1, bank.length);
   reviewWords = [];
   for (var i = 0; i < PER; i++) reviewWords.push(bank[(rStart + i) % bank.length]);
+
   // Track day
   var today = new Date().toISOString().slice(0,10);
   var days = S.days;
   if (days.indexOf(today) < 0) { days.push(today); S.days = days; }
   if (day > S.maxDay) S.maxDay = day;
+
+  // Update longest streak
+  var streak = calcCurrentStreak();
+  if (streak > S.longestStreak) S.longestStreak = streak;
+
+  // Daily seen tracking
+  dailySeenKey = 'de_seen_' + today;
+  dailySeenCount = parseInt(S.g(dailySeenKey, 0));
+
   wIdx = 0;
   var topDay = document.getElementById('top-day');
   if (topDay) topDay.textContent = 'Day ' + getDay();
+
+  // Check grace day
+  checkGraceDay();
+  // Update daily goal bar
+  updateGoalBar();
 }
 
 // ══════════════════════════════════════════════
@@ -2817,7 +2935,7 @@ function addXP(n) {
   S.s(xpKey, todayXP + add);
   S.xp = S.xp + add;
   document.getElementById('xp-num').textContent = S.xp;
-document.getElementById('top-day').textContent = 'Day ' + getDay();
+  document.getElementById('top-day').textContent = 'Day ' + getDay();
 }
 
 // ══════════════════════════════════════════════
@@ -2880,21 +2998,18 @@ function renderWord() {
   if (w[8]) {
     stCard.style.display = '';
     document.getElementById('wstory').textContent = w[8];
-    // Show Chinese context using existing translated fields (no API needed)
     var stZhEl = document.getElementById('wstory-zh');
     if (stZhEl) {
-      // Build Chinese story context from existing data
-      var storyZh = '';
-      if (w[5]) storyZh += w[5];  // Chinese example sentence
-      if (w[6]) storyZh += (storyZh ? '　' : '') + w[6];  // Memory tip
-      stZhEl.textContent = storyZh;
-      stZhEl.style.display = storyZh ? '' : 'none';
+      var tip = w[6] || '';
+      stZhEl.textContent = tip;
+      stZhEl.style.display = tip ? '' : 'none';
     }
     document.getElementById('ctags-inline').innerHTML = ctags.slice(0,2).map(function(t){
       return '<span class="ctag">' + t.trim() + '</span>';
     }).join('');
-    document.getElementById('story-body').style.display = '';
-    document.getElementById('story-arr').textContent = '收起 ▲';
+    // Default collapsed — don't force open on every word change
+    document.getElementById('story-body').style.display = 'none';
+    document.getElementById('story-arr').textContent = '展開 ▼';
   } else {
     stCard.style.display = 'none';
   }
@@ -2911,11 +3026,45 @@ function nextW() {
   wIdx++;
   S.wv = S.wv + 1;
   addXP(3);
-  // Completion notice when reaching the last word
+
+  // Track daily seen count (unique words)
+  var today = new Date().toISOString().slice(0,10);
+  dailySeenKey = 'de_seen_' + today;
+  dailySeenCount = parseInt(S.g(dailySeenKey, 0));
+  var newSeen = Math.min(todayWords.length, dailySeenCount + 1);
+  S.s(dailySeenKey, newSeen);
+  dailySeenCount = newSeen;
+  updateGoalBar();
+
+  // Completion celebration
   if (wIdx > 0 && wIdx % todayWords.length === 0) {
-    toast('🎉 Today\'s words complete! Try the Quiz →');
+    showCelebrate('daily');
   }
   renderWord();
+}
+
+function updateGoalBar() {
+  var pct = Math.min(100, Math.round(dailySeenCount / todayWords.length * 100));
+  var goalFill = document.getElementById('goal-fill');
+  var goalCt = document.getElementById('goal-ct');
+  if (goalFill) goalFill.style.width = pct + '%';
+  if (goalCt) goalCt.textContent = dailySeenCount + ' / ' + todayWords.length + ' 單字';
+  // Also update the day banner card text dynamically
+  var bdTitle = document.getElementById('bd-title');
+  var bdSub = document.getElementById('bd-sub');
+  if (bdTitle && bdSub) {
+    var remaining = todayWords.length - dailySeenCount;
+    if (dailySeenCount === 0) {
+      bdTitle.textContent = '今天有 ' + todayWords.length + ' 個新單字';
+      bdSub.textContent = '開始學習，每天進步一點點！';
+    } else if (remaining > 0) {
+      bdTitle.textContent = '還剩 ' + remaining + ' 個單字';
+      bdSub.textContent = '已看完 ' + dailySeenCount + ' 個，繼續加油！';
+    } else {
+      bdTitle.textContent = '🎉 今日單字全部完成！';
+      bdSub.textContent = '去「測驗」鞏固記憶效果更好';
+    }
+  }
 }
 function prevW() {
   wIdx = Math.max(0, wIdx - 1);
@@ -2935,7 +3084,7 @@ function toggleSave() {
     for (var i = 0; i < saved.length; i++) { if (saved[i].en === w[0] && saved[i].lv === lv) { idx2 = i; break; } }
   }
   if (idx2 >= 0) { saved.splice(idx2, 1); S.saved = saved; toast('已從單字本移除'); }
-  else { saved.push({en:w[0],ph:w[1],pos:w[2],zh:w[3],ex:w[4],exzh:w[5],tip:w[6],lv:lv}); S.saved = saved; addXP(5); toast('⭐ 已儲存！'); }
+  else { saved.push({en:w[0],ph:w[1],pos:w[2],zh:w[3],ex:w[4],exzh:w[5],tip:w[6],lv:lv}); S.saved = saved; addXP(5); toast('⭐ 已儲存！'); checkBadges(); }
   renderWord();
 }
 function toggleStory() {
@@ -3284,10 +3433,16 @@ function renderQuiz() {
   var area = document.getElementById('quiz-area');
   if (!quizItems.length) buildQuiz();
   if (qIdx >= quizItems.length) {
+    var pct = Math.round(qScore / quizItems.length * 100);
     area.innerHTML = '<div style="text-align:center;padding:40px 16px"><div style="font-size:48px;margin-bottom:16px">' + (qScore >= 8 ? '🎉' : qScore >= 5 ? '👍' : '💪') + '</div>' +
       '<div style="font-size:24px;font-weight:700;margin-bottom:8px">' + qScore + ' / ' + quizItems.length + '</div>' +
       '<div style="font-size:14px;color:var(--t3);margin-bottom:24px">' + (qScore >= 8 ? '太棒了！' : qScore >= 5 ? '繼續加油！' : '多練習吧！') + '</div>' +
       '<button onclick="buildQuiz();renderQuiz()" style="padding:12px 28px;border-radius:var(--r2);background:var(--green);border:none;color:#0f1117;font-weight:700;cursor:pointer;font-family:var(--sans);font-size:15px">再來一次</button></div>';
+    // Perfect score celebration
+    if (qScore === quizItems.length) {
+      setTimeout(function(){ showCelebrate('quiz100'); }, 300);
+    }
+    checkBadges();
     return;
   }
   var q = quizItems[qIdx];
@@ -3297,7 +3452,7 @@ function renderQuiz() {
   if (q.type === 'mc') {
     html += '<div class="q-opts">';
     q.opts.forEach(function(opt, i) {
-      html += '<button class="q-opt" id="qopt-' + i + '" onclick="checkMC(this,\'' + opt.replace(/'/g,"\\'") + '\')">' + opt + '</button>';
+      html += '<button class="q-opt" id="qopt-' + i + '" data-opt="' + i + '">' + opt.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</button>';
     });
     html += '</div>';
   } else {
@@ -3307,6 +3462,12 @@ function renderQuiz() {
   }
   html += '<div id="q-fb" style="display:none"></div></div>';
   area.innerHTML = html;
+  // Wire up MC options safely via event listeners (avoids XSS from inline onclick)
+  if (q.type === 'mc') {
+    area.querySelectorAll('.q-opt').forEach(function(btn, i) {
+      btn.addEventListener('click', function() { checkMC(btn, q.opts[i]); });
+    });
+  }
   // Auto-read the word in quiz
   speak(quizItems[qIdx] ? quizItems[qIdx].w[0] : '');
   if (q.type === 'fill') {
@@ -3321,6 +3482,10 @@ function checkMC(btn, chosen) {
   btn.className = 'q-opt ' + (correct ? 'correct' : 'wrong');
   if (!correct) {
     document.querySelectorAll('.q-opt').forEach(function(b){ if (b.textContent === q.ans) b.className = 'q-opt correct'; });
+    // Track weak word
+    if (q.w) markWeakWord(q.w[0]);
+  } else {
+    if (q.w) clearWeakWord(q.w[0]);
   }
   showQFeedback(correct, q);
   if (correct) { qScore++; addXP(10); }
@@ -3335,10 +3500,24 @@ function checkFill() {
   var correct = val.toLowerCase() === q.ans.toLowerCase() || val === q.ans;
   inp.style.borderColor = correct ? 'var(--green)' : 'var(--red)';
   inp.disabled = true;
+  if (!correct && q.w) markWeakWord(q.w[0]);
+  else if (correct && q.w) clearWeakWord(q.w[0]);
   showQFeedback(correct, q);
   if (correct) { qScore++; addXP(10); }
   var qa = S.qacc; qa.total++; if(correct) qa.correct++; S.qacc = qa;
   setTimeout(function(){ qIdx++; renderQuiz(); }, correct ? 1200 : 2500);
+}
+
+// ── Weak Word Tracking ──
+function markWeakWord(en) {
+  var ww = S.weakWords;
+  ww[en] = (ww[en] || 0) + 1;
+  S.weakWords = ww;
+}
+function clearWeakWord(en) {
+  var ww = S.weakWords;
+  if (ww[en] && ww[en] > 1) { ww[en]--; } else { delete ww[en]; }
+  S.weakWords = ww;
 }
 function showQFeedback(correct, q) {
   var fb = document.getElementById('q-fb');
@@ -3358,6 +3537,197 @@ function showQFeedback(correct, q) {
       if (!found) { s2.push({en:q.w[0],ph:q.w[1],pos:q.w[2],zh:q.w[3],ex:q.w[4],exzh:q.w[5],tip:q.w[6],lv:lv}); S.saved=s2; svBtn.textContent='★ 已在單字本'; svBtn.className='qsave-btn saved'; addXP(5); toast('⭐ 儲存！'); }
     };
     fb.appendChild(svBtn);
+  }
+}
+
+// ══════════════════════════════════════════════
+// GRACE DAY
+// ══════════════════════════════════════════════
+function calcCurrentStreak() {
+  var days = S.days.slice().sort();
+  if (!days.length) return 0;
+  var streak = 1;
+  var today = new Date().toISOString().slice(0,10);
+  // Walk back from today
+  var cur = new Date(today);
+  for (var i = 0; i < 365; i++) {
+    var ds = cur.toISOString().slice(0,10);
+    if (days.indexOf(ds) >= 0) {
+      if (i > 0) streak++;
+      cur.setDate(cur.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+function checkGraceDay() {
+  var banner = document.getElementById('grace-banner');
+  if (!banner) return;
+  var days = S.days;
+  var today = new Date();
+  var todayStr = today.toISOString().slice(0,10);
+  var yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  var yStr = yesterday.toISOString().slice(0,10);
+  var dayBefore = new Date(today);
+  dayBefore.setDate(dayBefore.getDate() - 2);
+  var dbStr = dayBefore.toISOString().slice(0,10);
+  // Show if: today not yet done, yesterday missed, but day before done (streak was alive)
+  var todayDone = days.indexOf(todayStr) >= 0;
+  var yesterdayDone = days.indexOf(yStr) >= 0;
+  var dayBeforeDone = days.indexOf(dbStr) >= 0;
+  var graceUsed = S.g('de_grace_' + todayStr, false);
+  if (!todayDone && !yesterdayDone && dayBeforeDone && !graceUsed) {
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+function claimGraceDay() {
+  var today = new Date().toISOString().slice(0,10);
+  var yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  var yStr = yesterday.toISOString().slice(0,10);
+  // Add yesterday to days array
+  var days = S.days;
+  if (days.indexOf(yStr) < 0) { days.push(yStr); S.days = days; }
+  S.s('de_grace_' + today, true);
+  document.getElementById('grace-banner').style.display = 'none';
+  toast('✅ 補打卡成功！連續天數已維持');
+  addXP(20);
+  checkBadges();
+}
+
+// ══════════════════════════════════════════════
+// CELEBRATION
+// ══════════════════════════════════════════════
+var celebrateTypes = {
+  daily: { emoji:'🎉', title:'今日單字完成！', sub:'太棒了！你看完了今天所有 15 個單字\n去測驗鞏固記憶吧！', btn:'去測驗 →', action: function(){ closeCelebrate(); goScreen('quiz'); } },
+  quiz100: { emoji:'🏆', title:'測驗滿分！', sub:'太厲害了！10題全對！\n繼續保持這個節奏！', btn:'繼續學習', action: closeCelebrate },
+  badge: { emoji:'🎖', title:'', sub:'', btn:'查看成就', action: function(){ closeCelebrate(); goScreen('prog'); } }
+};
+function showCelebrate(type, extra) {
+  var cfg = celebrateTypes[type] || celebrateTypes.daily;
+  if (extra) {
+    cfg = { emoji: extra.emoji || cfg.emoji, title: extra.title || cfg.title, sub: extra.sub || cfg.sub, btn: cfg.btn, action: cfg.action };
+  }
+  document.getElementById('cel-emoji').textContent = cfg.emoji;
+  document.getElementById('cel-title').textContent = cfg.title;
+  document.getElementById('cel-sub').textContent = cfg.sub;
+  document.getElementById('cel-btn').textContent = cfg.btn;
+  document.getElementById('cel-btn').onclick = cfg.action;
+  spawnConfetti();
+  document.getElementById('celebrate').className = 'celebrate show';
+}
+function closeCelebrate() {
+  document.getElementById('celebrate').className = 'celebrate';
+}
+function spawnConfetti() {
+  var wrap = document.getElementById('confetti-wrap');
+  wrap.innerHTML = '';
+  var colors = ['#4ade80','#fbbf24','#60a5fa','#f87171','#e879f9','#fff'];
+  for (var i = 0; i < 40; i++) {
+    var el = document.createElement('div');
+    el.className = 'conf';
+    el.style.cssText = [
+      'left:' + Math.random()*100 + '%',
+      'background:' + colors[Math.floor(Math.random()*colors.length)],
+      'animation-duration:' + (1.2 + Math.random()*1.5) + 's',
+      'animation-delay:' + (Math.random()*0.5) + 's',
+      'width:' + (6 + Math.random()*8) + 'px',
+      'height:' + (6 + Math.random()*8) + 'px',
+      'border-radius:' + (Math.random()>0.5 ? '50%' : '2px')
+    ].join(';');
+    wrap.appendChild(el);
+  }
+}
+
+// ══════════════════════════════════════════════
+// BADGES
+// ══════════════════════════════════════════════
+var BADGE_DEFS = [
+  { id:'day1',    icon:'🌱', name:'第一天',      cond:'打開 App 第一天',         check: function(){ return S.days.length >= 1; } },
+  { id:'day7',    icon:'🔥', name:'7天連續',      cond:'連續學習 7 天',            check: function(){ return calcCurrentStreak() >= 7; } },
+  { id:'day30',   icon:'💎', name:'30天連續',     cond:'連續學習 30 天',           check: function(){ return calcCurrentStreak() >= 30; } },
+  { id:'save10',  icon:'⭐', name:'存10個單字',   cond:'單字本存入 10 個單字',     check: function(){ return S.saved.length >= 10; } },
+  { id:'save50',  icon:'🌟', name:'存50個單字',   cond:'單字本存入 50 個單字',     check: function(){ return S.saved.length >= 50; } },
+  { id:'quiz100', icon:'🏆', name:'測驗滿分',     cond:'測驗拿到 10/10 滿分',      check: function(){ var q = S.qacc; return q.total >= 10 && q.correct/q.total >= 1; } },
+  { id:'xp500',   icon:'⚡', name:'500 XP',       cond:'累積 500 XP 經驗值',       check: function(){ return S.xp >= 500; } },
+  { id:'wv100',   icon:'📚', name:'瀏覽100單字',  cond:'瀏覽過 100 個單字',        check: function(){ return S.wv >= 100; } },
+  { id:'acc80',   icon:'🎯', name:'答對率80%',    cond:'20 題以上且答對率 ≥ 80%',  check: function(){ var q = S.qacc; return q.total >= 20 && q.correct/q.total >= 0.8; } },
+  { id:'lv_i',    icon:'🚀', name:'解鎖中級',     cond:'累積 500 XP 解鎖中級',     check: function(){ return isUnlocked('i'); } },
+  { id:'lv_a',    icon:'👑', name:'解鎖高級',     cond:'累積 2000 XP 解鎖高級',    check: function(){ return isUnlocked('a'); } },
+  { id:'grace',   icon:'🛡', name:'補打卡達人',   cond:'最長連續天數達 14 天',     check: function(){ return S.longestStreak >= 14; } }
+];
+function checkBadges() {
+  var earned = S.badges;
+  var newBadges = [];
+  BADGE_DEFS.forEach(function(b) {
+    if (earned.indexOf(b.id) < 0 && b.check()) {
+      earned.push(b.id);
+      newBadges.push(b);
+    }
+  });
+  if (newBadges.length) {
+    S.badges = earned;
+    // Show celebration for first new badge
+    var b = newBadges[0];
+    setTimeout(function() {
+      showCelebrate('badge', { emoji: b.icon, title: '新成就解鎖！', sub: '「' + b.name + '」\n繼續保持！' });
+    }, 500);
+  }
+}
+function renderBadges() {
+  var grid = document.getElementById('badge-grid');
+  if (!grid) return;
+  var earned = S.badges;
+  grid.innerHTML = '';
+  BADGE_DEFS.forEach(function(b) {
+    var isEarned = earned.indexOf(b.id) >= 0;
+    var div = document.createElement('div');
+    div.className = 'badge' + (isEarned ? ' earned' : '');
+    div.innerHTML = '<div class="badge-icon">' + b.icon + '</div><div class="badge-name">' + b.name + '</div>';
+    // Click shows unlock condition for unearned badges
+    if (!isEarned) {
+      div.style.cursor = 'pointer';
+      div.onclick = function() { toast('🔒 ' + b.cond); };
+    }
+    grid.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════
+// WEEK CHART
+// ══════════════════════════════════════════════
+function renderWeekChart() {
+  var wrap = document.getElementById('week-bars');
+  if (!wrap) return;
+  var days = S.days;
+  var today = new Date();
+  var dayNames = ['日','一','二','三','四','五','六'];
+  var todayStr = today.toISOString().slice(0,10);
+  wrap.innerHTML = '';
+  // Show last 7 days
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date(today);
+    d.setDate(d.getDate() - i);
+    var ds = d.toISOString().slice(0,10);
+    var done = days.indexOf(ds) >= 0;
+    var isToday = ds === todayStr;
+    var seen = parseInt(S.g('de_seen_' + ds, 0));
+    var barHeight = done ? Math.max(20, Math.round(seen / 15 * 60)) : 4;
+    var div = document.createElement('div');
+    div.className = 'week-bar-wrap';
+    var bar = document.createElement('div');
+    bar.className = 'week-bar' + (isToday ? ' today' : (done ? ' active' : ''));
+    bar.style.height = barHeight + 'px';
+    var lbl = document.createElement('div');
+    lbl.className = 'week-day-lbl';
+    lbl.textContent = dayNames[d.getDay()];
+    div.appendChild(bar);
+    div.appendChild(lbl);
+    wrap.appendChild(div);
   }
 }
 
@@ -3390,8 +3760,13 @@ function renderProg() {
   document.getElementById('stat-saved').textContent = S.saved.length;
   var qa = S.qacc;
   document.getElementById('stat-acc').textContent = qa.total ? Math.round(qa.correct / qa.total * 100) + '%' : '--';
+  var streakEl = document.getElementById('stat-streak');
+  if (streakEl) streakEl.textContent = Math.max(S.longestStreak, calcCurrentStreak()) + '天';
   updateLvUI();
   renderCal();
+  renderWeekChart();
+  checkBadges();
+  renderBadges();
   var start = getStartDate();
   document.getElementById('start-date-inp').value = start;
   document.getElementById('start-status').textContent = '目前：' + start + '（Day ' + getDay() + '）';
@@ -3437,18 +3812,41 @@ function unlockLv(l) {
 function resetStats() {
   if (!confirm('確定要重置所有學習紀錄嗎？（儲存的單字本不會被刪除）')) return;
   var sv = S.saved;
-  ['de_xp','de_wv','de_days','de_maxday'].forEach(function(k){ localStorage.removeItem(k); });
+  // Clear all learning keys including new ones
+  var keysToRemove = ['de_xp','de_wv','de_days','de_maxday','de_qacc','de_weak','de_badges','de_lstreak'];
+  keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
+  // Also clear daily XP and daily seen keys
+  Object.keys(localStorage).forEach(function(k){
+    if (k.startsWith('de_xpd_') || k.startsWith('de_seen_') || k.startsWith('de_grace_')) {
+      localStorage.removeItem(k);
+    }
+  });
   S.saved = sv;
-  initDaily(); updateLvUI(); renderWord(); renderReview(); renderQuiz(); renderProg();
+  dailySeenCount = 0;
+  initDaily(); updateLvUI(); renderWord(); renderReview(); renderQuiz(); renderProg(); updateGoalBar();
   toast('學習紀錄已重置');
 }
 function resetAll() {
   if (!confirm('確定要完全重置嗎？所有資料包含單字本都會被刪除，無法復原！')) return;
-  ['de_xp','de_wv','de_days','de_maxday','de_saved','de_start','de_accent'].forEach(function(k){ localStorage.removeItem(k); });
+  // Clear everything
+  Object.keys(localStorage).forEach(function(k){
+    if (k.startsWith('de_')) localStorage.removeItem(k);
+  });
   currentAccent = 'us';
+  dailySeenCount = 0;
   setAccent('us');
-  initDaily(); updateLvUI(); renderWord(); renderReview(); renderQuiz(); renderProg();
+  initDaily(); updateLvUI(); renderWord(); renderReview(); renderQuiz(); renderProg(); updateGoalBar();
   toast('所有資料已清除');
+}
+
+function initSearchStats() {
+  var nb = (WORDS.b || []).length;
+  var ni = (WORDS.i || []).length;
+  var na = (WORDS.a || []).length;
+  var el = document.getElementById('stat-total'); if(el) el.textContent = nb + ni + na;
+  var eb = document.getElementById('stat-b'); if(eb) eb.textContent = nb;
+  var ei = document.getElementById('stat-i'); if(ei) ei.textContent = ni;
+  var ea = document.getElementById('stat-a'); if(ea) ea.textContent = na;
 }
 
 // ══════════════════════════════════════════════
@@ -3465,6 +3863,7 @@ function goScreen(s) {
   if (s === 'prog') renderProg();
   if (s === 'quiz') { if (qIdx === 0 || qIdx >= quizItems.length) buildQuiz(); renderQuiz(); }
   if (s === 'search') {
+    initSearchStats();
     setTimeout(function(){ document.getElementById('search-inp').focus(); }, 100);
   }
 }
@@ -3479,6 +3878,8 @@ renderReview();
 buildQuiz();
 initSpeechRateUI();
 document.getElementById('xp-num').textContent = S.xp;
+updateGoalBar();
+checkBadges();
 
 // ── 自動偵測新的一天 ──────────────────────────
 var _lastCheckedDate = new Date().toISOString().slice(0, 10);
@@ -3538,8 +3939,23 @@ if (window.addEventListener) window.addEventListener('focus', function() {
     var dx = e.changedTouches[0].clientX - startX;
     var dy = e.changedTouches[0].clientY - startY;
     if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx)) return;
-    if (dx < 0) { wIdx = (wIdx + 1) % todayWords.length; renderWord(); }
-    else { wIdx = (wIdx - 1 + todayWords.length) % todayWords.length; renderWord(); }
+    if (dx < 0) {
+      // Swipe left = next word (same tracking as nextW button)
+      S.wv = S.wv + 1;
+      addXP(3);
+      var today2 = new Date().toISOString().slice(0,10);
+      dailySeenKey = 'de_seen_' + today2;
+      dailySeenCount = parseInt(S.g(dailySeenKey, 0));
+      var newSeen2 = Math.min(todayWords.length, dailySeenCount + 1);
+      S.s(dailySeenKey, newSeen2);
+      dailySeenCount = newSeen2;
+      updateGoalBar();
+      wIdx = (wIdx + 1) % todayWords.length;
+      if (wIdx === 0) showCelebrate('daily');
+    } else {
+      wIdx = (wIdx - 1 + todayWords.length) % todayWords.length;
+    }
+    renderWord();
   }, {passive:true});
 })();
 // iOS "Add to Home Screen" tip
