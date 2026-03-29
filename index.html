@@ -101,7 +101,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .story-toggle .ctags{display:flex;gap:4px}
 .story-toggle .ctag{font-size:10px;padding:2px 6px;background:var(--al);color:var(--amber);border-radius:99px}
 .story-toggle .arr{color:var(--t3);font-size:11px;transition:transform .2s}
-.story-body{display:none;padding:0 16px 14px;border-top:1px solid var(--border2)}
+.story-body{padding:0 16px 14px;border-top:1px solid var(--border2)}
 .story-body p{font-size:13px;color:var(--t2);line-height:1.8;margin-top:12px;font-style:italic}
 
 /* ── PRON ── */
@@ -176,24 +176,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .icon-btn svg{width:14px;height:14px;stroke:var(--t2);fill:none}
 
-/* ── CHAT ── */
-.chat-msgs{margin-bottom:14px;display:flex;flex-direction:column;gap:8px}
-.bubble{max-width:80%;padding:10px 13px;border-radius:16px;font-size:14px;line-height:1.5}
-.bubble.ai{background:var(--bg3);border:1px solid var(--border);border-radius:16px 16px 16px 4px;align-self:flex-start}
-.bubble.user{background:var(--bl);border:1px solid var(--bb);color:var(--text);border-radius:16px 16px 4px 16px;align-self:flex-end}
-.bubble .zh-trans{font-size:11px;color:var(--t3);margin-top:4px}
-.chat-hints{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.hint-pill{padding:6px 12px;border-radius:99px;border:1px solid var(--bb);background:var(--bl);color:var(--blue);font-size:12px;cursor:pointer;font-family:var(--sans)}
-.chat-inp-row{display:flex;gap:8px;align-items:center}
-.chat-inp{flex:1;padding:10px 14px;border-radius:99px;border:1.5px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;font-family:var(--sans);outline:none}
-.chat-inp:focus{border-color:var(--blue)}
-.chat-send{width:40px;height:40px;border-radius:50%;background:var(--green);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.chat-send svg{width:16px;height:16px;stroke:#0f1117;fill:none}
-.chat-mic{width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.chat-mic svg{width:16px;height:16px;stroke:var(--t2);fill:none}
-.chat-mic.active{background:rgba(232,121,249,.15);border-color:#e879f9}
-.chat-mic.active svg{stroke:#e879f9}
-
 /* ── SEARCH ── */
 .search-inp-wrap{position:relative;margin-bottom:14px}
 .search-inp{width:100%;padding:13px 16px 13px 44px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);font-size:16px;color:var(--text);font-family:var(--sans);outline:none;-webkit-appearance:none}
@@ -245,6 +227,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .toast{position:fixed;bottom:calc(80px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 18px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:all .25s;white-space:nowrap;z-index:999}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+* { -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
+button { user-select: none; -webkit-user-select: none; }
+.screens { overscroll-behavior: contain; }
 /* ── UTIL ── */
 .empty-msg{text-align:center;padding:48px 16px;color:var(--t3);font-size:14px;line-height:1.7}
 .section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-top:4px}
@@ -344,6 +329,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
         </button>
         <div class="story-body" id="story-body">
           <p id="wstory"></p>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)"><div style="font-size:10px;color:var(--t3);margin-bottom:4px;letter-spacing:.05em">中文對照</div><p id="wstory-zh" style="font-size:13px;color:var(--amber);margin:0;line-height:1.7"></p></div>
         </div>
       </div>
 
@@ -427,7 +413,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
       <br>
       <div class="search-inp-wrap">
         <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" class="search-inp" id="search-inp" placeholder="搜尋英文或中文..." oninput="doSearch()">
+        <input type="text" class="search-inp" id="search-inp" placeholder="Search English or Chinese..." oninput="doSearch()">
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 4px">
         <div style="background:var(--bg2);border-radius:var(--r2);padding:10px 8px;text-align:center">
@@ -479,27 +465,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
       <div id="quiz-area"></div>
     </div>
 
-    <!-- CHAT -->
-    <div class="screen" id="screen-chat">
-      <div style="margin-bottom:12px">
-        <select id="scene-sel" onchange="changeScene()" style="width:100%;padding:10px 12px;border-radius:var(--r2);border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:var(--sans);font-size:13px;outline:none"></select>
-      </div>
-      <div class="chat-msgs" id="chat-msgs"></div>
-      <div class="chat-hints" id="chat-hints"></div>
-      <div class="chat-inp-row">
-        <button class="chat-mic" id="chat-mic" onclick="toggleChatMic()">
-          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-        </button>
-        <input type="text" class="chat-inp" id="chat-inp" placeholder="輸入英文..." onkeydown="if(event.key==='Enter')sendMsg()">
-        <button class="chat-send" onclick="sendMsg()">
-          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-      </div>
-      <div style="text-align:center;margin-top:8px">
-        <button onclick="toggleZh()" style="font-size:11px;color:var(--t3);background:none;border:none;cursor:pointer;font-family:var(--sans)" id="zh-toggle">顯示中文翻譯</button>
-      </div>
-    </div>
-
     <!-- PROGRESS -->
     <div class="screen" id="screen-prog">
       <div class="stat-grid">
@@ -507,6 +472,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
         <div class="stat-box"><div class="stat-val" id="stat-wv" style="color:var(--green)">0</div><div class="stat-lbl">瀏覽單字</div></div>
         <div class="stat-box"><div class="stat-val" id="stat-days" style="color:var(--blue)">0</div><div class="stat-lbl">學習天數</div></div>
         <div class="stat-box"><div class="stat-val" id="stat-saved" style="color:var(--text)">0</div><div class="stat-lbl">已儲存</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-acc" style="color:var(--green)">--</div><div class="stat-lbl">測驗準確率</div></div>
       </div>
       <div class="lv-bar">
         <div class="lv-label"><span style="font-weight:600">解鎖進度</span><span id="lv-pct" style="color:var(--t3)"></span></div>
@@ -571,10 +537,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
     <button class="nv" id="nav-quiz" onclick="goScreen('quiz')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       測驗
-    </button>
-    <button class="nv" id="nav-chat" onclick="goScreen('chat')">
-      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      對話
     </button>
     <button class="nv" id="nav-prog" onclick="goScreen('prog')">
       <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -2664,96 +2626,27 @@ a: [
 };
 
 // ══════════════════════════════════════════════
-// SCENES
-// ══════════════════════════════════════════════
-var SCENES = {
-  b: [
-    {name:"在咖啡廳點餐",hints:["Can I have a coffee?","How much is it?","Where is the restroom?","Thank you!"],
-     convos:[
-      {a:"Hello! Welcome! What can I get for you today?",zh:"你好！歡迎光臨！今天想點什麼？"},
-      {a:"Of course! Hot or iced?",zh:"當然！熱的還是冰的？"},
-      {a:"That's $3.50. Anything else?",zh:"總共是3.5元，還需要其他嗎？"},
-      {a:"The restroom is at the back on your left!",zh:"廁所在後面的左邊！"},
-      {a:"Have a great day! Come back soon!",zh:"祝您有美好的一天！歡迎再來！"}
-    ]},
-    {name:"在超市購物",hints:["Do you have...?","Where can I find...?","How much is this?","I'll take it."],
-     convos:[
-      {a:"Welcome! Can I help you find anything today?",zh:"歡迎光臨！有什麼我可以幫您找的？"},
-      {a:"The produce section is in aisle 3.",zh:"蔬果區在第3走道。"},
-      {a:"That item is on sale — two for the price of one!",zh:"那個商品特價中——買一送一！"},
-      {a:"Will that be everything for today?",zh:"今天就這些嗎？"},
-      {a:"Great! Have a good day!",zh:"很好！祝您有美好的一天！"}
-    ]},
-    {name:"問路找地方",hints:["Excuse me!","Where is...?","How far is it?","Thank you!"],
-     convos:[
-      {a:"Hi! How can I help you?",zh:"嗨！有什麼我可以幫您的？"},
-      {a:"Go straight and turn left at the traffic light.",zh:"直走然後在紅綠燈左轉。"},
-      {a:"It's about a 5-minute walk from here.",zh:"從這裡步行約5分鐘。"},
-      {a:"You're welcome! Enjoy your visit!",zh:"不客氣！祝您參觀愉快！"}
-    ]},
-    {name:"在餐廳用餐",hints:["A table for two.","I'd like...","Is this spicy?","The bill please."],
-     convos:[
-      {a:"Good evening! Do you have a reservation?",zh:"晚安！您有預訂嗎？"},
-      {a:"Right this way! Here is your menu.",zh:"請跟我來！這是您的菜單。"},
-      {a:"I recommend the chef's special today.",zh:"我推薦今日主廚特餐。"},
-      {a:"How is everything? Enjoying your meal?",zh:"一切都好嗎？用餐愉快嗎？"},
-      {a:"Here is your bill. Thank you for dining with us!",zh:"這是您的帳單。感謝您來用餐！"}
-    ]}
-  ],
-  i: [
-    {name:"公司討論專案進度",hints:["What's the deadline?","Are you available?","Can we schedule a meeting?","I'd like to confirm..."],
-     convos:[
-      {a:"Good morning! Do you have a moment to discuss the project?",zh:"早安！你有空討論一下專案嗎？"},
-      {a:"The deadline is this Friday at 5pm. Are you on track?",zh:"截止日期是這週五下午五點，進度OK嗎？"},
-      {a:"Let me check my schedule... I'm free Thursday at 2pm.",zh:"讓我查一下時程...週四下午兩點我有空。"},
-      {a:"I'll confirm by email. Thanks for your feedback!",zh:"我會用電子郵件確認。感謝你的回饋！"}
-    ]},
-    {name:"求職面試",hints:["I have experience in...","My strength is...","I'm passionate about...","I look forward to..."],
-     convos:[
-      {a:"Tell me about yourself and your background.",zh:"請介紹一下你自己和你的背景。"},
-      {a:"What would you say is your greatest strength?",zh:"你認為你最大的優勢是什麼？"},
-      {a:"Do you have experience managing a team?",zh:"你有管理團隊的經驗嗎？"},
-      {a:"Where do you see yourself in five years?",zh:"你希望五年後在哪裡？"},
-      {a:"Thank you for coming in. We'll be in touch soon.",zh:"感謝你的來訪，我們會盡快與你聯絡。"}
-    ]},
-    {name:"訂餐廳預約",hints:["I'd like to book a table...","For two people...","On Saturday evening...","Any dietary restrictions?"],
-     convos:[
-      {a:"Good evening! How can I help you?",zh:"晚安！有什麼我可以幫您的？"},
-      {a:"Of course! For how many people and what date?",zh:"當然！請問幾位，什麼日期？"},
-      {a:"Our salmon pasta is highly recommended!",zh:"我們的鮭魚義大利麵非常受歡迎！"},
-      {a:"Confirmed! We'll see you Saturday at 7pm.",zh:"已確認！週六七點見。"}
-    ]}
-  ],
-  a: [
-    {name:"辯論：科技對社會的影響",hints:["I'd argue that...","The evidence suggests...","That's a compelling point...","From a pragmatic standpoint..."],
-     convos:[
-      {a:"Let's discuss technology's societal impact. What's your opening argument?",zh:"讓我們討論科技對社會的影響，你的開場論點是什麼？"},
-      {a:"Interesting. One could argue the nuance lies in how technology is deployed.",zh:"有趣，有人可能說細微差別在於科技如何被部署。"},
-      {a:"That's compelling. The empirical evidence corroborates both views.",zh:"很有說服力，實證證據支持兩種觀點。"},
-      {a:"A pragmatic approach would suggest we need systemic policy changes.",zh:"務實的方法建議我們需要系統性的政策改變。"}
-    ]},
-    {name:"學術討論：研究方法",hints:["My hypothesis is...","The empirical data shows...","One could argue...","The paradigm suggests..."],
-     convos:[
-      {a:"What is the core hypothesis of your research?",zh:"你研究的核心假設是什麼？"},
-      {a:"Can you elaborate on your empirical methodology?",zh:"你可以詳細說明你的實證方法嗎？"},
-      {a:"The coherence of your argument depends on this assumption.",zh:"你論點的連貫性取決於這個假設。"},
-      {a:"How does this challenge the existing paradigm in the field?",zh:"這如何挑戰該領域現有的典範？"}
-    ]}
-  ]
-};
-
-// ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
 var S = {
-  g: function(k, def) { try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : def; } catch(e) { return def; } },
+  g: function(k, d) { try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : d; } catch(e) { return d; } },
   s: function(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} },
-  get xp()     { return this.g('de_xp', 0); },      set xp(v)     { this.s('de_xp', v); },
-  get wv()     { return this.g('de_wv', 0); },      set wv(v)     { this.s('de_wv', v); },
-  get days()   { return this.g('de_days', []); },   set days(v)   { this.s('de_days', v); },
-  get saved()  { return this.g('de_saved', []); },  set saved(v)  { this.s('de_saved', v); },
-  get maxDay() { return this.g('de_maxday', 0); },  set maxDay(v) { this.s('de_maxday', v); },
-  get accent() { return this.g('de_accent', 'us'); },set accent(v){ this.s('de_accent', v); }
+  get xp()     { return this.g('de_xp', 0); },
+  set xp(v)    { this.s('de_xp', v); },
+  get wv()     { return this.g('de_wv', 0); },
+  set wv(v)    { this.s('de_wv', v); },
+  get days()   { return this.g('de_days', []); },
+  set days(v)  { this.s('de_days', v); },
+  get saved()  { return this.g('de_saved', []); },
+  set saved(v) { this.s('de_saved', v); },
+  get maxDay() { return this.g('de_maxday', 0); },
+  set maxDay(v){ this.s('de_maxday', v); },
+  get accent() { return this.g('de_accent', 'us'); },
+  set accent(v){ this.s('de_accent', v); },
+  get qacc()   { return this.g('de_qacc', {total:0, correct:0}); },
+  set qacc(v)  { this.s('de_qacc', v); },
+  get apiKey() { return this.g('de_apikey', ''); },
+  set apiKey(v){ this.s('de_apikey', v); }
 };
 
 var lv = 'b';
@@ -2764,17 +2657,19 @@ var currentAccent = S.accent;
 var searchTimer = null;
 var recog = null;
 var isRecording = false;
-var showZh = false;
 var fcIdx = 0;
 var fcMode = false;
 var fcDeck = [];
-
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
 function getStartDate() {
   var v = localStorage.getItem('de_start');
-  return v ? v : '2025-01-01';
+  if (!v) {
+    v = new Date().toISOString().slice(0,10);
+    localStorage.setItem('de_start', v);
+  }
+  return v;
 }
 function getDay() {
   var start = new Date(getStartDate());
@@ -2788,9 +2683,11 @@ function getDaysForLv(l) {
 }
 function isUnlocked(l) {
   if (l === 'b') return true;
+  var xp = S.xp;
+  // Also allow day-based unlock as fallback for existing users
   var bDays = getDaysForLv('b');
-  if (l === 'i') return S.maxDay >= bDays;
-  if (l === 'a') return S.maxDay >= bDays + getDaysForLv('i');
+  if (l === 'i') return xp >= 500 || S.maxDay >= bDays;
+  if (l === 'a') return xp >= 2000 || S.maxDay >= bDays + getDaysForLv('i');
   return false;
 }
 function getActiveLv() {
@@ -2817,6 +2714,8 @@ function initDaily() {
   if (days.indexOf(today) < 0) { days.push(today); S.days = days; }
   if (day > S.maxDay) S.maxDay = day;
   wIdx = 0;
+  var topDay = document.getElementById('top-day');
+  if (topDay) topDay.textContent = 'Day ' + getDay();
 }
 
 // ══════════════════════════════════════════════
@@ -2854,7 +2753,7 @@ function _loadVoices() {
   if (v.length) _voicesCache = v;
   return _voicesCache;
 }
-if (speechSynthesis.onvoiceschanged !== undefined) {
+if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) {
   speechSynthesis.onvoiceschanged = function() { _voicesCache = speechSynthesis.getVoices(); };
 }
 function getBestVoice(lang) {
@@ -2909,8 +2808,16 @@ function toast(msg) {
   el._t = setTimeout(function() { el.className = 'toast'; }, 2000);
 }
 function addXP(n) {
-  S.xp = S.xp + n;
+  var today = new Date().toISOString().slice(0,10);
+  var xpKey = 'de_xpd_' + today;
+  var todayXP = parseInt(S.g(xpKey, 0));
+  var limit = 200; // daily XP cap
+  if (todayXP >= limit) return;
+  var add = Math.min(n, limit - todayXP);
+  S.s(xpKey, todayXP + add);
+  S.xp = S.xp + add;
   document.getElementById('xp-num').textContent = S.xp;
+document.getElementById('top-day').textContent = 'Day ' + getDay();
 }
 
 // ══════════════════════════════════════════════
@@ -2973,11 +2880,21 @@ function renderWord() {
   if (w[8]) {
     stCard.style.display = '';
     document.getElementById('wstory').textContent = w[8];
+    // Show Chinese context using existing translated fields (no API needed)
+    var stZhEl = document.getElementById('wstory-zh');
+    if (stZhEl) {
+      // Build Chinese story context from existing data
+      var storyZh = '';
+      if (w[5]) storyZh += w[5];  // Chinese example sentence
+      if (w[6]) storyZh += (storyZh ? '　' : '') + w[6];  // Memory tip
+      stZhEl.textContent = storyZh;
+      stZhEl.style.display = storyZh ? '' : 'none';
+    }
     document.getElementById('ctags-inline').innerHTML = ctags.slice(0,2).map(function(t){
       return '<span class="ctag">' + t.trim() + '</span>';
     }).join('');
-    document.getElementById('story-body').style.display = 'none';
-    document.getElementById('story-arr').textContent = '展開 ▼';
+    document.getElementById('story-body').style.display = '';
+    document.getElementById('story-arr').textContent = '收起 ▲';
   } else {
     stCard.style.display = 'none';
   }
@@ -2994,6 +2911,10 @@ function nextW() {
   wIdx++;
   S.wv = S.wv + 1;
   addXP(3);
+  // Completion notice when reaching the last word
+  if (wIdx > 0 && wIdx % todayWords.length === 0) {
+    toast('🎉 Today\'s words complete! Try the Quiz →');
+  }
   renderWord();
 }
 function prevW() {
@@ -3009,7 +2930,7 @@ function speakExample() {
 function toggleSave() {
   var w = todayWords[wIdx % todayWords.length];
   var saved = S.saved;
-  var idx2 = saved.findIndex ? saved.findIndex(function(s){ return s.en === w[0] && s.lv === lv; }) : -1;
+  var idx2 = (function(arr){ for(var _i=0;_i<arr.length;_i++){if(arr[_i].en===w[0]&&arr[_i].lv===lv)return _i;} return -1; })(saved);
   if (idx2 < 0) {
     for (var i = 0; i < saved.length; i++) { if (saved[i].en === w[0] && saved[i].lv === lv) { idx2 = i; break; } }
   }
@@ -3130,6 +3051,18 @@ function showPronScore(score, heard, target) {
              score >= 60 ? '還不錯！多練習幾次，注意清楚地說每個音節。' :
              '再試一試！先聽範例，再慢慢模仿。目標：' + target;
   document.getElementById('score-tips').textContent = tips;
+  // Save pronunciation score if word is saved
+  var w = todayWords[wIdx % todayWords.length];
+  if (w) {
+    var saved = S.saved;
+    for (var _i = 0; _i < saved.length; _i++) {
+      if (saved[_i].en === w[0]) {
+        saved[_i].pronScore = score;
+        S.saved = saved;
+        break;
+      }
+    }
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -3147,7 +3080,7 @@ function renderSaved() {
   saved.forEach(function(w, i) {
     var div = document.createElement('div');
     div.className = 'saved-item';
-    div.innerHTML = '<div class="info"><div class="en">' + w.en + '</div><div class="zh">' + w.zh + '</div></div>' +
+    div.innerHTML = '<div class="info"><div class="en">' + w.en + '</div><div class="zh">' + w.zh + '</div>' + (w.pronScore !== undefined ? '<div style="font-size:10px;color:' + (w.pronScore>=80?'var(--green)':w.pronScore>=60?'var(--amber)':'var(--red)') + ';margin-top:2px">🎤 ' + w.pronScore + '</div>' : '') + '</div>' +
       '<div class="actions"><div class="icon-btn" id="sv-sp-' + i + '"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg></div>' +
       '<div class="icon-btn" id="sv-rm-' + i + '"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></div></div>';
     list.appendChild(div);
@@ -3306,22 +3239,43 @@ function doSearch() {
 var quizItems = [];
 var qIdx = 0;
 var qScore = 0;
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
 function buildQuiz() {
   var pool = todayWords.concat(reviewWords);
   quizItems = [];
-  var shuffled = pool.slice().sort(function(){ return Math.random()-.5; });
+  var shuffled = shuffle(pool);
   var used = shuffled.slice(0, 10);
   used.forEach(function(w, i) {
-    var type = i % 3 === 2 ? 'fill' : 'mc';
+    // 4 types: 0=E→C mc, 1=C→E mc, 2=fill E→C, 3=fill C→E
+    var typeIdx = i % 4;
     var opts = [];
-    if (type === 'mc') {
-      var distractors = pool.filter(function(d){ return d[0] !== w[0]; }).sort(function(){ return Math.random()-.5; }).slice(0,3);
+    if (typeIdx === 0) {
+      // English word → choose Chinese
+      var distractors = shuffle(pool.filter(function(d){ return d[0] !== w[0]; })).slice(0,3);
       opts = distractors.map(function(d){ return d[3]; });
       var ansPos = Math.floor(Math.random()*4);
       opts.splice(ansPos, 0, w[3]);
       quizItems.push({type:'mc', q:'「' + w[0] + '」的中文是？', opts:opts, ans:w[3], exp:'✓ ' + w[0] + ' = ' + w[3], w:w});
-    } else {
+    } else if (typeIdx === 1) {
+      // Chinese → choose English
+      var distractors2 = shuffle(pool.filter(function(d){ return d[0] !== w[0]; })).slice(0,3);
+      opts = distractors2.map(function(d){ return d[0]; });
+      var ansPos2 = Math.floor(Math.random()*4);
+      opts.splice(ansPos2, 0, w[0]);
+      quizItems.push({type:'mc', q:'「' + w[3] + '」的英文是？', opts:opts, ans:w[0], exp:'✓ ' + w[3] + ' = ' + w[0], w:w});
+    } else if (typeIdx === 2) {
+      // Fill in English given Chinese
       quizItems.push({type:'fill', q:'根據中文填入英文單字：「' + w[3] + '」', ans:w[0].toLowerCase(), exp:'✓ 答案是 "' + w[0] + '"，' + w[3], w:w});
+    } else {
+      // Fill in Chinese given English  
+      quizItems.push({type:'fill', q:'寫出「' + w[0] + '」的中文意思：', ans:w[3], exp:'✓ ' + w[0] + ' = ' + w[3], w:w});
     }
   });
   qIdx = 0; qScore = 0;
@@ -3338,7 +3292,8 @@ function renderQuiz() {
   }
   var q = quizItems[qIdx];
   var html = '<div style="font-size:11px;color:var(--t3);margin-bottom:4px">第 ' + (qIdx+1) + ' / ' + quizItems.length + ' 題</div>' +
-    '<div class="q-card"><div class="q-text">' + q.q + '</div>';
+    '<div class="q-card"><div class="q-text">' + q.q + '</div>' +
+    (q.w ? '<div style="font-size:11px;color:var(--t3);margin:4px 0 8px;line-height:1.5">' + q.w[4] + '<br><span style="color:var(--amber)">' + q.w[5] + '</span></div>' : '');
   if (q.type === 'mc') {
     html += '<div class="q-opts">';
     q.opts.forEach(function(opt, i) {
@@ -3346,11 +3301,14 @@ function renderQuiz() {
     });
     html += '</div>';
   } else {
-    html += '<input type="text" class="q-fill" id="q-fill-inp" placeholder="輸入英文單字..." autocomplete="off" autocapitalize="off">' +
+    var fillHint = (q.q.indexOf('英文') > -1) ? '輸入英文...' : '輸入中文意思...';
+    html += '<input type="text" class="q-fill" id="q-fill-inp" placeholder="' + fillHint + '" autocomplete="off" autocapitalize="off">' +
       '<button class="q-submit" onclick="checkFill()">確認</button>';
   }
   html += '<div id="q-fb" style="display:none"></div></div>';
   area.innerHTML = html;
+  // Auto-read the word in quiz
+  speak(quizItems[qIdx] ? quizItems[qIdx].w[0] : '');
   if (q.type === 'fill') {
     var inp = document.getElementById('q-fill-inp');
     if (inp) inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') checkFill(); });
@@ -3366,18 +3324,20 @@ function checkMC(btn, chosen) {
   }
   showQFeedback(correct, q);
   if (correct) { qScore++; addXP(10); }
+  var qa = S.qacc; qa.total++; if(correct) qa.correct++; S.qacc = qa;
   setTimeout(function(){ qIdx++; renderQuiz(); }, correct ? 1200 : 2500);
 }
 function checkFill() {
   var inp = document.getElementById('q-fill-inp');
   if (!inp) return;
-  var val = inp.value.trim().toLowerCase();
+  var val = inp.value.trim();
   var q = quizItems[qIdx];
-  var correct = val === q.ans;
+  var correct = val.toLowerCase() === q.ans.toLowerCase() || val === q.ans;
   inp.style.borderColor = correct ? 'var(--green)' : 'var(--red)';
   inp.disabled = true;
   showQFeedback(correct, q);
   if (correct) { qScore++; addXP(10); }
+  var qa = S.qacc; qa.total++; if(correct) qa.correct++; S.qacc = qa;
   setTimeout(function(){ qIdx++; renderQuiz(); }, correct ? 1200 : 2500);
 }
 function showQFeedback(correct, q) {
@@ -3399,113 +3359,6 @@ function showQFeedback(correct, q) {
     };
     fb.appendChild(svBtn);
   }
-}
-
-// ══════════════════════════════════════════════
-// CHAT
-// ══════════════════════════════════════════════
-var chatSceneIdx = 0;
-var chatConvoIdx = 0;
-function initChat() {
-  var sel = document.getElementById('scene-sel');
-  sel.innerHTML = '';
-  var scenes = SCENES[lv] || SCENES.b;
-  scenes.forEach(function(s, i) {
-    var opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = s.name;
-    sel.appendChild(opt);
-  });
-  chatSceneIdx = 0;
-  chatConvoIdx = 0;
-  resetChat();
-}
-function changeScene() {
-  chatSceneIdx = parseInt(document.getElementById('scene-sel').value) || 0;
-  chatConvoIdx = 0;
-  resetChat();
-}
-function resetChat() {
-  document.getElementById('chat-msgs').innerHTML = '';
-  chatConvoIdx = 0;
-  var scenes = SCENES[lv] || SCENES.b;
-  var scene = scenes[chatSceneIdx] || scenes[0];
-  showHints(scene);
-  appendMsg(scene.convos[0].a, scene.convos[0].zh, 'ai');
-  chatConvoIdx = 1;
-}
-function showHints(scene) {
-  var el = document.getElementById('chat-hints');
-  el.innerHTML = '';
-  (scene.hints || []).forEach(function(h) {
-    var btn = document.createElement('button');
-    btn.className = 'hint-pill';
-    btn.textContent = h;
-    btn.onclick = function() { document.getElementById('chat-inp').value = h; sendMsg(); };
-    el.appendChild(btn);
-  });
-}
-function appendMsg(text, zh, who) {
-  var el = document.createElement('div');
-  el.className = 'bubble ' + who;
-  el.innerHTML = text;
-  if (zh && who === 'ai') {
-    var zhEl = document.createElement('div');
-    zhEl.className = 'zh-trans';
-    zhEl.textContent = zh;
-    zhEl.style.display = showZh ? '' : 'none';
-    el.appendChild(zhEl);
-  }
-  document.getElementById('chat-msgs').appendChild(el);
-  if (el.scrollIntoView) el.scrollIntoView({behavior:'smooth',block:'nearest'});
-  if (who === 'ai') speak(text);
-}
-function sendMsg() {
-  var inp = document.getElementById('chat-inp');
-  var text = inp.value.trim();
-  if (!text) return;
-  inp.value = '';
-  appendMsg(text, '', 'user');
-  addXP(8);
-  var scenes = SCENES[lv] || SCENES.b;
-  var scene = scenes[chatSceneIdx] || scenes[0];
-  setTimeout(function() {
-    if (chatConvoIdx < scene.convos.length) {
-      var c = scene.convos[chatConvoIdx];
-      appendMsg(c.a, c.zh, 'ai');
-      chatConvoIdx++;
-    } else {
-      appendMsg("Great job! You've completed this conversation. Try another scene!", "做得好！你完成了這個對話。試試其他場景！", 'ai');
-      chatConvoIdx = 0;
-    }
-  }, 600);
-}
-function toggleZh() {
-  showZh = !showZh;
-  document.getElementById('zh-toggle').textContent = showZh ? '隱藏中文翻譯' : '顯示中文翻譯';
-  document.querySelectorAll('.zh-trans').forEach(function(el){ el.style.display = showZh ? '' : 'none'; });
-}
-function toggleChatMic() {
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { toast('此瀏覽器不支援語音輸入'); return; }
-  var mic = document.getElementById('chat-mic');
-  if (mic.classList.contains('active')) {
-    if (recog) recog.stop();
-    mic.className = 'chat-mic';
-    return;
-  }
-  recog = new SR();
-  recog.lang = currentAccent === 'uk' ? 'en-GB' : 'en-US';
-  recog.interimResults = false;
-  recog.onresult = function(e) {
-    document.getElementById('chat-inp').value = e.results[0][0].transcript;
-    mic.className = 'chat-mic';
-    sendMsg();
-  };
-  recog.onerror = function() { mic.className = 'chat-mic'; };
-  recog.onend = function() { mic.className = 'chat-mic'; };
-  recog.start();
-  mic.className = 'chat-mic active';
 }
 
 // ══════════════════════════════════════════════
@@ -3535,6 +3388,8 @@ function renderProg() {
   document.getElementById('stat-wv').textContent = S.wv;
   document.getElementById('stat-days').textContent = S.days.length;
   document.getElementById('stat-saved').textContent = S.saved.length;
+  var qa = S.qacc;
+  document.getElementById('stat-acc').textContent = qa.total ? Math.round(qa.correct / qa.total * 100) + '%' : '--';
   updateLvUI();
   renderCal();
   var start = getStartDate();
@@ -3608,9 +3463,8 @@ function goScreen(s) {
   if (nv) nv.className = 'nv on';
   if (s === 'saved') renderSaved();
   if (s === 'prog') renderProg();
-  if (s === 'quiz') { buildQuiz(); renderQuiz(); }
+  if (s === 'quiz') { if (qIdx === 0 || qIdx >= quizItems.length) buildQuiz(); renderQuiz(); }
   if (s === 'search') {
-    document.getElementById('search-results').innerHTML = '<div class="search-empty"><div class="icon">🔍</div><p>輸入英文單字或中文意思<br>搜尋全部單字庫</p></div>';
     setTimeout(function(){ document.getElementById('search-inp').focus(); }, 100);
   }
 }
@@ -3623,7 +3477,6 @@ initDaily();
 renderWord();
 renderReview();
 buildQuiz();
-initChat();
 initSpeechRateUI();
 document.getElementById('xp-num').textContent = S.xp;
 
@@ -3660,14 +3513,35 @@ document.addEventListener('visibilitychange', function() {
 });
 
 // iOS 從其他 App 切回時觸發
-window.addEventListener('pageshow', function() {
+if (window.addEventListener) window.addEventListener('pageshow', function() {
   checkDayChange();
 });
 
-window.addEventListener('focus', function() {
+if (window.addEventListener) window.addEventListener('focus', function() {
   checkDayChange();
 });
 
+
+// ── Swipe gesture for word card ──────────────
+(function() {
+  var el = document.querySelector('.screens');
+  if (!el) return;
+  var startX = 0, startY = 0;
+  el.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, {passive:true});
+  el.addEventListener('touchend', function(e) {
+    var screen = document.querySelector('.screen[style*="block"]') ||
+                 document.querySelector('.screen.on');
+    if (!screen || screen.id !== 'screen-vocab') return;
+    var dx = e.changedTouches[0].clientX - startX;
+    var dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx)) return;
+    if (dx < 0) { wIdx = (wIdx + 1) % todayWords.length; renderWord(); }
+    else { wIdx = (wIdx - 1 + todayWords.length) % todayWords.length; renderWord(); }
+  }, {passive:true});
+})();
 // iOS "Add to Home Screen" tip
 if (!window.navigator.standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
   setTimeout(function(){ toast('💡 分享 → 加入主畫面，像 App 一樣使用'); }, 3500);
