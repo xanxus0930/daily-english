@@ -2737,7 +2737,11 @@ var S = {
   get badges()  { return this.g('de_badges', []); },
   set badges(v) { this.s('de_badges', v); },
   get longestStreak(){ return this.g('de_lstreak', 0); },
-  set longestStreak(v){ this.s('de_lstreak', v); }
+  set longestStreak(v){ this.s('de_lstreak', v); },
+  get session()  { return this.g('de_session', 1); },
+  set session(v) { this.s('de_session', v); },
+  get lastOpen() { return this.g('de_lastopen', ''); },
+  set lastOpen(v){ this.s('de_lastopen', v); }
 };
 
 var lv = 'b';
@@ -2764,11 +2768,30 @@ function getStartDate() {
   }
   return v;
 }
+
+// Returns current session day (increments only when app is actually opened on a new calendar day)
+function getSessionDay() {
+  return S.session;
+}
+
+// Called on every app open — advances session counter if this is a new calendar day
+function advanceSessionIfNewDay() {
+  var today = new Date().toISOString().slice(0,10);
+  var last = S.lastOpen;
+  if (last !== today) {
+    if (last !== '') {
+      // Only increment if we've opened before (not first ever open)
+      S.session = S.session + 1;
+    }
+    S.lastOpen = today;
+    return true; // is a new day
+  }
+  return false; // same day, no change
+}
+
 function getDay() {
-  var start = new Date(getStartDate());
-  var now = new Date();
-  var diff = Math.floor((now - start) / 86400000) + 1;
-  return Math.max(1, diff);
+  // Keep for legacy / display: shows session count
+  return S.session;
 }
 function getDaysForLv(l) {
   var bank = WORDS[l] || [];
@@ -2789,10 +2812,13 @@ function getActiveLv() {
   return 'b';
 }
 function initDaily() {
+  // Advance session counter if this is a new calendar day
+  advanceSessionIfNewDay();
+
   lv = getActiveLv();
   var bank = WORDS[lv] || [];
   var PER = 15;
-  var day = getDay();
+  var day = getSessionDay();   // ← uses actual open count, not calendar date
   var off = (day - 1);
   var start = (off * PER) % Math.max(1, bank.length);
   todayWords = [];
@@ -2812,7 +2838,7 @@ function initDaily() {
   reviewWords = [];
   for (var i = 0; i < PER; i++) reviewWords.push(bank[(rStart + i) % bank.length]);
 
-  // Track day
+  // Track calendar date for streak/calendar purposes
   var today = new Date().toISOString().slice(0,10);
   var days = S.days;
   if (days.indexOf(today) < 0) { days.push(today); S.days = days; }
@@ -2822,13 +2848,13 @@ function initDaily() {
   var streak = calcCurrentStreak();
   if (streak > S.longestStreak) S.longestStreak = streak;
 
-  // Daily seen tracking
+  // Daily seen tracking (keyed by calendar date so today's progress is correct)
   dailySeenKey = 'de_seen_' + today;
   dailySeenCount = parseInt(S.g(dailySeenKey, 0));
 
   wIdx = 0;
   var topDay = document.getElementById('top-day');
-  if (topDay) topDay.textContent = 'Day ' + getDay();
+  if (topDay) topDay.textContent = 'Day ' + getSessionDay();
 
   // Check grace day
   checkGraceDay();
@@ -3524,19 +3550,20 @@ function showQFeedback(correct, q) {
   fb.style.display = '';
   fb.className = 'q-feedback ' + (correct ? 'ok' : 'no');
   fb.innerHTML = q.exp;
-  if (!correct) {
-    var svBtn = document.createElement('button');
-    svBtn.className = 'qsave-btn';
-    var saved = S.saved;
-    var isSaved = saved.some(function(s){ return s.en === q.w[0]; });
-    svBtn.textContent = isSaved ? '★ 已在單字本' : '☆ 加入單字本';
-    if (isSaved) svBtn.className = 'qsave-btn saved';
-    svBtn.onclick = function() {
-      var s2 = S.saved;
-      var found = s2.some(function(s){ return s.en === q.w[0]; });
-      if (!found) { s2.push({en:q.w[0],ph:q.w[1],pos:q.w[2],zh:q.w[3],ex:q.w[4],exzh:q.w[5],tip:q.w[6],lv:lv}); S.saved=s2; svBtn.textContent='★ 已在單字本'; svBtn.className='qsave-btn saved'; addXP(5); toast('⭐ 儲存！'); }
-    };
-    fb.appendChild(svBtn);
+  if (!correct && q.w) {
+    // Auto-add to saved wordbook
+    var s2 = S.saved;
+    var alreadySaved = s2.some(function(s){ return s.en === q.w[0]; });
+    if (!alreadySaved) {
+      s2.push({en:q.w[0], ph:q.w[1], pos:q.w[2], zh:q.w[3], ex:q.w[4], exzh:q.w[5], tip:q.w[6], lv:lv});
+      S.saved = s2;
+      checkBadges();
+    }
+    // Show status label (auto-saved or already in book)
+    var svLabel = document.createElement('div');
+    svLabel.style.cssText = 'margin-top:8px;font-size:11px;color:var(--amber)';
+    svLabel.textContent = alreadySaved ? '★ 已在單字本' : '📌 已自動加入單字本';
+    fb.appendChild(svLabel);
   }
 }
 
@@ -3888,7 +3915,7 @@ function checkDayChange() {
   var today = new Date().toISOString().slice(0, 10);
   if (today !== _lastCheckedDate) {
     _lastCheckedDate = today;
-    // 新的一天：重新初始化單字、測驗
+    // 新的一天：initDaily 內部會自動推進 session 計數
     wIdx = 0;
     initDaily();
     renderWord();
@@ -3896,9 +3923,8 @@ function checkDayChange() {
     buildQuiz();
     renderCal();
     document.getElementById('xp-num').textContent = S.xp;
-    // 更新頂部日期顯示
     var dayEl = document.getElementById('top-day');
-    if (dayEl) dayEl.textContent = 'Day ' + getDay();
+    if (dayEl) dayEl.textContent = 'Day ' + getSessionDay();
     toast('🌅 新的一天！單字與測驗已更新');
   }
 }
