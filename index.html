@@ -168,6 +168,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .qsave-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:var(--bg3);color:var(--t2);margin-top:8px;transition:all .15s}
 .qsave-btn.saved{border-color:var(--ab);background:var(--al);color:var(--amber)}
 
+/* ── API 用量 ── */
+.usage-box{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+.usage-hd{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:8px}
+.usage-total{font-weight:700;color:var(--green)}
+.usage-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.usage-name{flex:0 0 auto;font-size:11px;color:var(--t3);width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.usage-track{flex:1;height:6px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.usage-fill{height:100%;background:var(--green);border-radius:99px;transition:width .3s}
+.usage-fill.warn{background:var(--amber)}
+.usage-fill.full{background:var(--red)}
+.usage-num{flex:0 0 auto;font-size:11px;color:var(--t2);width:56px;text-align:right}
+.usage-note{font-size:10px;color:var(--t3);line-height:1.6;margin-top:6px}
+
 /* ── TOEIC ── */
 .qz-tabs{display:flex;gap:8px;margin-bottom:12px}
 .qz-tab{flex:1;padding:9px;border-radius:99px;border:1px solid var(--border);background:var(--bg2);color:var(--t2);font-size:13px;font-family:var(--sans);cursor:pointer}
@@ -651,6 +664,7 @@ button { user-select: none; -webkit-user-select: none; }
           <button class="set-btn red" style="flex:0 0 auto" onclick="clearApiKey()">清除</button>
         </div>
         <div id="gem-status" style="font-size:12px;color:var(--t3);line-height:1.6"></div>
+        <div class="usage-box" id="api-usage"></div>
         <div style="font-size:11px;color:var(--t3);margin-top:8px;line-height:1.6;border-top:1px solid var(--border);padding-top:8px">
           於 Google AI Studio 免費申請 Key（aistudio.google.com/apikey）。<br>
           Key 以明文存在本機瀏覽器 localStorage，僅供自己使用，勿將此檔案外流或上傳公開網址。<br>
@@ -6029,6 +6043,7 @@ function renderProg() {
   renderWeekChart();
   checkBadges();
   renderBadges();
+  renderApiUsage();
   var start = getStartDate();
   document.getElementById('start-date-inp').value = start;
   document.getElementById('start-status').textContent = '目前：' + start + '（僅影響日曆顯示，不影響課程進度）';
@@ -6069,7 +6084,7 @@ function resetStats() {
   // Clear all learning keys including new ones
   var keysToRemove = ['de_xp','de_wv','de_days','de_maxday','de_qacc','de_weak','de_badges','de_lstreak',
                       'de_srs','de_pick','de_lesson_b','de_lesson_i','de_lesson_a','de_done_b','de_done_i','de_done_a',
-                      'de_toeic','de_model_quota'];
+                      'de_toeic','de_model_quota'];   // de_api_usage 是用量紀錄，不隨學習紀錄重置
   keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
   // Also clear daily XP and daily seen keys
   Object.keys(localStorage).forEach(function(k){
@@ -6276,14 +6291,51 @@ var FALLBACK_MODEL = 'gemini-3.6-flash';
 // 免費層配額是「每個模型每天各算一份」，所以排一條備援鏈，一個用完就換下一個
 var MODEL_CHAIN = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash'];
 function getModel() { var m = S.g('de_model', ''); return (m && String(m).trim()) ? String(m).trim() : DEFAULT_MODEL; }
-// 503（過載）記在記憶體 30 分鐘；429（當日配額用完）記到 localStorage，隔天自動解除
+// 503（過載）記在記憶體 30 分鐘；429（當日配額用完）記到 localStorage，配額重置後自動解除
 var _modelDown = {};
+var FREE_DAILY_LIMIT = 20;   // 免費層：每個模型每天 20 次請求
+
+// Google 的每日配額以太平洋時間午夜為界，不是台灣時間，所以用量要用 PT 日期計算
+function ptDate() {
+  try { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); }
+  catch (e) { return dstr(0); }
+}
 function quotaMap() { return S.g('de_model_quota', {}); }
-function markQuotaUsedUp(m) { var q = quotaMap(); q[m] = dstr(0); S.s('de_model_quota', q); }
+function markQuotaUsedUp(m) { var q = quotaMap(); q[m] = ptDate(); S.s('de_model_quota', q); }
+
+function apiUsage() { return S.g('de_api_usage', {}); }
+function bumpApiUsage(model, kind) {
+  var u = apiUsage(), d = ptDate();
+  u[d] = u[d] || {};
+  u[d][model] = u[d][model] || { req: 0, ok: 0, quota: 0, err: 0 };
+  u[d][model][kind] = (u[d][model][kind] || 0) + 1;
+  var keep = Object.keys(u).sort().slice(-7);   // 只留最近 7 天
+  var trimmed = {};
+  keep.forEach(function(k){ trimmed[k] = u[k]; });
+  S.s('de_api_usage', trimmed);
+}
+function usageToday() {
+  var day = apiUsage()[ptDate()] || {};
+  var rows = MODEL_CHAIN.map(function(m){
+    var r = day[m] || { req:0, ok:0, quota:0, err:0 };
+    var used = r.req || 0;
+    var blocked = quotaMap()[m] === ptDate();
+    return { model: m, used: used, left: blocked ? 0 : Math.max(0, FREE_DAILY_LIMIT - used),
+             ok: r.ok || 0, quota: r.quota || 0, blocked: blocked };
+  });
+  var extra = Object.keys(day).filter(function(m){ return MODEL_CHAIN.indexOf(m) < 0; })
+    .map(function(m){ var r = day[m], bl = quotaMap()[m] === ptDate();
+      return { model:m, used:r.req||0, left: bl ? 0 : Math.max(0, FREE_DAILY_LIMIT-(r.req||0)),
+               ok:r.ok||0, quota:r.quota||0, blocked: bl }; });
+  rows = rows.concat(extra);
+  var total = rows.reduce(function(a, r){ return a + r.used; }, 0);
+  var left = rows.reduce(function(a, r){ return a + r.left; }, 0);
+  return { rows: rows, total: total, left: left, date: ptDate() };
+}
 function modelQueue() {
   var picked = getModel();
   var chain = [picked].concat(MODEL_CHAIN.filter(function(m){ return m !== picked; }));
-  var q = quotaMap(), today = dstr(0);
+  var q = quotaMap(), today = ptDate();
   var avail = chain.filter(function(m){
     if (q[m] === today) return false;
     if (_modelDown[m] && (Date.now() - _modelDown[m]) < 1800000) return false;
@@ -6323,6 +6375,7 @@ function _callGemini(systemText, history, model, cb) {
             encodeURIComponent(model) + ':generateContent';
   var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 30000);
+  bumpApiUsage(model, 'req');
   fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
@@ -6335,7 +6388,9 @@ function _callGemini(systemText, history, model, cb) {
     if (!r.ok) {
       // 過載／配額用完／找不到模型 → 交給呼叫端換下一個模型
       if (r.status === 503 || r.status === 429 || r.status === 404) {
+        bumpApiUsage(model, r.status === 429 ? 'quota' : 'err');
         if (r.status === 429) markQuotaUsedUp(model); else _modelDown[model] = Date.now();
+        renderApiUsage(); updateAiStatus();
         var m2 = 'HTTP ' + r.status;
         if (r.status === 429) m2 = '今日免費配額已用完（每個模型每天 20 次），明天會自動恢復。';
         if (r.status === 503) m2 = '模型目前過載（503），稍後再試。';
@@ -6360,6 +6415,9 @@ function _callGemini(systemText, history, model, cb) {
     var parts = (cand.content && cand.content.parts) || [];
     var raw = parts.filter(function(p){ return p.text && !p.thought; })
                    .map(function(p){ return p.text; }).join('');
+    bumpApiUsage(model, 'ok');
+    renderApiUsage();
+    updateAiStatus();
     cb({ raw: raw, model: model });
   }).catch(function(err) {
     clearTimeout(timer);
@@ -6378,6 +6436,48 @@ function parseAiJson(raw) {
     return { reply: 'Sorry, could you say that again?', zh: '（AI 回覆格式不正確，這句是自動替代）', correction: '', better: '' };
   }
   return { reply: t, zh: '', correction: '', better: '' };
+}
+
+function renderApiUsage() {
+  var box = document.getElementById('api-usage');
+  if (!box) return;
+  var u = usageToday();
+  box.innerHTML = '';
+  var hd = document.createElement('div');
+  hd.className = 'usage-hd';
+  var left = document.createElement('span');
+  left.textContent = '今日 API 用量（' + u.date + '，太平洋時間）';
+  var right = document.createElement('span');
+  right.className = 'usage-total';
+  right.textContent = '剩 ' + u.left + ' / ' + (u.total + u.left) + ' 次';
+  hd.appendChild(left); hd.appendChild(right);
+  box.appendChild(hd);
+
+  u.rows.forEach(function(r){
+    var row = document.createElement('div');
+    row.className = 'usage-row';
+    var name = document.createElement('span');
+    name.className = 'usage-name';
+    name.textContent = r.model.replace('gemini-', '');
+    var track = document.createElement('div');
+    track.className = 'usage-track';
+    var fill = document.createElement('div');
+    var pct = Math.min(100, Math.round(r.used / FREE_DAILY_LIMIT * 100));
+    fill.className = 'usage-fill' + (r.blocked || r.left === 0 ? ' full' : (pct >= 70 ? ' warn' : ''));
+    fill.style.width = pct + '%';
+    track.appendChild(fill);
+    var num = document.createElement('span');
+    num.className = 'usage-num';
+    num.textContent = r.blocked ? '已用完' : (r.used + '/' + FREE_DAILY_LIMIT);
+    row.appendChild(name); row.appendChild(track); row.appendChild(num);
+    box.appendChild(row);
+  });
+
+  var note = document.createElement('div');
+  note.className = 'usage-note';
+  note.textContent = '免費層每個模型每天 ' + FREE_DAILY_LIMIT + ' 次請求，於太平洋時間午夜（台灣約下午 3-4 點）重置。'
+    + '此數字只統計這台裝置經由本 App 送出的請求，在其他地方用同一把 Key 不會被算進來。';
+  box.appendChild(note);
 }
 
 // ── API settings UI ──
@@ -6410,6 +6510,7 @@ function clearApiKey() {
   S.apiKey = '';
   localStorage.removeItem('de_model_quota');
   _modelDown = {};
+  renderApiUsage();
   document.getElementById('gem-key').value = '';
   document.getElementById('gem-status').textContent = '已清除。對話頁回到腳本模式。';
   document.getElementById('gem-status').style.color = 'var(--t3)';
@@ -6443,7 +6544,8 @@ function updateAiStatus() {
   if (!el || !tx) return;
   if (hasApiKey()) {
     el.className = 'ai-status on';
-    tx.textContent = 'AI 對話已啟用（' + getModel() + '）';
+    var u = usageToday();
+    tx.textContent = 'AI 對話已啟用（' + activeModel() + '・今日剩 ' + u.left + ' 次）';
   } else {
     el.className = 'ai-status off';
     tx.textContent = '腳本模式（未設定 API Key）';
