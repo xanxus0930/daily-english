@@ -14,25 +14,31 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="每日英語">
-<meta name="theme-color" content="#0f1117">
+<meta name="theme-color" content="#f5ead8">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="./icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Noto+Sans+TC:wght@400;500;700&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
 <title>每日英語</title>
 <style>
 :root {
-  --bg:#0f1117; --bg2:#181c25; --bg3:#1f2433;
-  --border:#2a2f3d; --border2:#232839;
-  --text:#e8eaf0; --text2:#a0a8c0; --t2:#a0a8c0; --t3:#5a6180;
-  --green:#4ade80; --gl:rgba(74,222,128,.13); --gb:rgba(74,222,128,.3);
-  --amber:#fbbf24; --al:rgba(251,191,36,.13); --ab:rgba(251,191,36,.3);
-  --blue:#60a5fa; --bl:rgba(96,165,250,.13); --bb:rgba(96,165,250,.3);
-  --red:#f87171; --rl:rgba(248,113,113,.13);
-  --r:12px; --r2:8px;
-  --sans:'Noto Sans TC',sans-serif; --serif:'Libre Baskerville',serif;
+  /* Organic — cream ground, terracotta + sage accents */
+  --bg:#f5ead8; --bg2:#f9f4ed; --bg3:#ebddc5;
+  --border:#dcd3c4; --border2:#eee7db;
+  --text:#201e1d; --text2:#645c50; --t2:#645c50; --t3:#6b6355;
+  --green:#56633f; --gl:rgba(122,138,94,.20); --gb:rgba(122,138,94,.45);
+  --amber:#8c491a; --al:rgba(198,113,57,.20); --ab:rgba(198,113,57,.45);
+  --blue:#645c50; --bl:rgba(100,92,80,.13); --bb:rgba(100,92,80,.30);
+  --red:#a33d1a; --rl:rgba(163,61,26,.14);
+  --terra:#c67139; --terra-d:#b2622d; --sage:#728157;
+  --ink:#f9f4ed;
+  --shadow-sm:0 1px 2px rgba(46,43,37,.14);
+  --shadow-md:0 3px 10px rgba(46,43,37,.16);
+  --shadow-lg:0 12px 32px rgba(46,43,37,.22);
+  --r:20px; --r2:14px;
+  --sans:'Figtree','Noto Sans TC',sans-serif; --serif:'Caprasimo',serif;
   --safe-top: env(safe-area-inset-top,0px);
   --safe-bot: env(safe-area-inset-bottom,0px);
 }
@@ -417,6 +423,139 @@ button { user-select: none; -webkit-user-select: none; }
 /* ── UTIL ── */
 .empty-msg{text-align:center;padding:48px 16px;color:var(--t3);font-size:14px;line-height:1.7}
 .section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-top:4px}
+
+/* ══════════════════════════════════════════════════════════════
+   ORGANIC THEME LAYER — warm ground, rounded shapes, pill actions
+   ══════════════════════════════════════════════════════════════ */
+html,body{background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5{font-family:var(--serif);font-weight:400;letter-spacing:-.015em}
+:focus-visible{outline:2px solid var(--terra);outline-offset:2px}
+::selection{background:rgba(198,113,57,.3)}
+a{color:#8c491a}
+a:hover{color:#643312}
+
+/* top bar */
+.topbar{background:transparent;border-bottom:none;padding:12px 18px 8px;gap:7px}
+.topbar .logo{font-family:var(--serif);font-style:normal;font-size:19px;color:var(--text);letter-spacing:-.01em}
+.topbar .day-chip{background:var(--al);color:#8c491a;border-color:var(--ab);font-weight:700}
+.topbar .xp-chip{background:var(--gl);color:#4a5636;border-color:var(--gb);font-weight:700}
+.acc-btn{background:var(--bg2);border-color:var(--border);box-shadow:var(--shadow-sm)}
+.acc-btn button.on{background:var(--al);color:#8c491a}
+
+/* surfaces — shadows instead of hairlines, softer radii */
+.card,.wcard,.tip-card,.pron-panel,.q-card,.rev-card,.saved-item,.search-item,.stat-box,
+.lv-bar,.cal-wrap,.settings-section,.week-chart,.story-card,.fc-card,.tq-passage,.tq-btn,
+.daily-goal,.grace-banner{border:none;box-shadow:var(--shadow-sm);border-radius:var(--r);background:var(--bg2)}
+.wcard,.fc-card,.q-card{box-shadow:var(--shadow-md);border-radius:28px}
+.tip-card.amber{background:rgba(255,225,208,.85)}
+.tip-card.green{background:rgba(225,238,204,.85)}
+.tip-card.blue{background:var(--bg3)}
+.tip-card.amber .tip-lbl{color:#8c491a}
+.tip-card.green .tip-lbl{color:#4a5636}
+.tip-lbl{font-weight:900;letter-spacing:.1em}
+.card-hd,.card-foot,.wcard-top,.wcard-foot,.rev-foot{border-color:var(--border)}
+.story-card{background:var(--bg3);box-shadow:none}
+.daily-goal{background:var(--bg3);box-shadow:none}
+
+/* word card */
+.w-en{font-family:var(--serif);font-style:normal;font-size:40px;line-height:1.05;letter-spacing:-.02em}
+.w-ph{color:#8c491a;font-weight:600}
+.w-zh{font-weight:900}
+.w-ex-wrap,.w-ex{border-color:var(--ab)}
+.wcard-prog{background:var(--border)}
+.wcard-prog-fill{background:var(--sage)}
+
+/* actions — pills */
+.wbtn,.nbtn,.pbtn,.set-btn,.fc-btn,.rev-btn,.icon-btn,.qsave-btn,.hint-pill,.qz-tab,.lv-chip,
+.q-submit,.tq-next,.tq-quit,.tq-play,.tq-script-btn,.celebrate-btn,.grace-btn,.chat-tools button,
+.search-item .s-btn,.weak-chip,.ph-chip span.en,.ph-chip span.zh{border-radius:999px}
+.wbtn,.nbtn,.set-btn,.fc-btn,.rev-btn{background:var(--bg2);border:1.5px solid var(--border);color:var(--text);font-weight:600}
+.wbtn:hover,.nbtn:hover,.set-btn:hover,.fc-btn:hover,.rev-btn:hover{background:var(--bg3)}
+.wbtn.speak{background:var(--gl);border-color:var(--gb);color:#4a5636}
+.wbtn.saved,.rev-btn.saved,.qsave-btn.saved{background:var(--sage);border-color:var(--sage);color:var(--ink)}
+.pbtn.listen{background:var(--gl);border-color:var(--gb);color:#4a5636}
+.pbtn.rec.active{background:var(--terra-d);border-color:var(--terra-d);color:var(--ink)}
+.set-btn.green{background:var(--sage);border-color:var(--sage);color:var(--ink)}
+.set-btn.amber{background:var(--terra);border-color:var(--terra);color:var(--ink)}
+.set-btn.red{background:transparent;border-color:var(--ab);color:#8c491a}
+.fc-btn.know{background:var(--sage);border-color:var(--sage);color:var(--ink)}
+.fc-btn.forgot{background:transparent;border-color:var(--ab);color:#8c491a}
+.q-submit,.tq-next,.celebrate-btn{background:var(--terra);color:var(--ink);border-radius:999px}
+.q-submit:hover,.tq-next:hover,.celebrate-btn:hover{background:var(--terra-d)}
+.grace-btn{background:var(--terra);color:var(--ink)}
+.icon-btn{background:var(--bg3);border:none;color:var(--t2)}
+
+/* quiz */
+.q-opt{background:var(--bg2);border:2px solid var(--border);border-radius:var(--r2);font-weight:600}
+.q-opt:hover{background:var(--bg3)}
+.q-opt.correct{background:rgba(225,238,204,.9);border-color:var(--sage);color:#3d472b}
+.q-opt.wrong{background:rgba(255,225,208,.9);border-color:var(--terra);color:#643312}
+.qz-tabs{background:var(--bg3);border-radius:999px;padding:4px;gap:4px;border:none}
+.qz-tab{background:transparent;border:none;color:var(--t2);font-weight:700}
+.qz-tab.on{background:var(--bg2);color:var(--text);box-shadow:var(--shadow-sm)}
+.q-fill,.search-inp,.chat-inp,.set-inp{background:var(--bg2);border:2px solid var(--border);color:var(--text);border-radius:999px}
+.q-fill:focus,.search-inp:focus,.chat-inp:focus,.set-inp:focus{border-color:var(--terra)}
+.search-inp{border-radius:999px}
+
+/* bottom nav — active tab is a terracotta pill */
+.bnav{background:var(--bg2);border-top:1px solid var(--border);padding:6px 8px 0;gap:3px}
+.nv{color:var(--t3);border-radius:999px;margin:3px 0 6px;font-weight:700}
+.nv.on{background:var(--terra);color:var(--ink)}
+
+/* chat */
+.chat-msgs{background:var(--bg3);border-radius:var(--r);padding:14px;border:none}
+.bubble.ai{background:var(--bg2);border:none;box-shadow:var(--shadow-sm);border-radius:18px 18px 18px 6px}
+.bubble.user{background:var(--sage);border:none;color:var(--ink);border-radius:18px 18px 6px 18px}
+.bubble.user .zh-trans{color:rgba(249,244,237,.8)}
+.bubble .corr{background:var(--al);border-color:var(--ab)}
+.bubble .corr .lbl{color:#8c491a}
+.hint-pill{background:transparent;border:2px dashed var(--border);color:var(--t2)}
+.hint-pill:hover{background:var(--bg3)}
+.chat-send{background:var(--terra);border:none;border-radius:999px}
+.chat-send svg{stroke:var(--ink)}
+.chat-mic{background:var(--bg2);border:2px solid var(--border);border-radius:999px}
+.ai-status{border-radius:999px}
+.ai-status.on{background:var(--gl);border-color:var(--gb);color:#4a5636}
+.ai-status.off{background:var(--bg3);border-color:var(--border);color:var(--t2)}
+
+/* progress */
+.stat-val{font-family:var(--serif);font-weight:400}
+.stat-lbl{font-weight:600;color:var(--t2)}
+.lv-track,.daily-goal-track{background:var(--border)}
+.lv-fill,.daily-goal-fill{background:var(--terra)}
+.lv-chip{background:var(--bg3);border:2px solid transparent;color:var(--t2);font-weight:700}
+.lv-chip.active{background:var(--terra);border-color:var(--terra);color:var(--ink)}
+.cday{border-radius:999px;background:var(--bg3);font-weight:600}
+.cday.done{background:var(--gl);color:#4a5636}
+.cday.today{background:var(--terra);color:var(--ink)}
+.week-bar{border-radius:999px;background:var(--border)}
+.week-bar.active{background:var(--sage)}
+.week-bar.today{background:var(--terra)}
+.badge{border:none;background:var(--bg3);border-radius:var(--r2)}
+.badge.earned{background:var(--al)}
+.badge-icon{filter:none}
+.settings-section h3{font-family:var(--serif);font-weight:400}
+.saved-hd h2{font-family:var(--serif);font-weight:400}
+.section-label{font-weight:900;letter-spacing:.1em;color:var(--t2)}
+
+/* misc */
+.toast{background:#2e2b25;border:none;color:var(--ink);box-shadow:var(--shadow-md)}
+.celebrate-title{font-family:var(--serif);color:var(--ink)}
+.celebrate-sub{color:rgba(249,244,237,.8)}
+.ph-chip{background:var(--bg2);box-shadow:var(--shadow-sm);border:none;border-radius:999px}
+.ph-chip span.en{color:var(--text);font-weight:600}
+.ph-chip span.zh{color:var(--t2)}
+.search-empty .icon{opacity:.5}
+.fc-hint{color:var(--t3);font-weight:600}
+.grace-banner{background:var(--al);box-shadow:none}
+.topbar .day-chip,.topbar .xp-chip,.wbtn,.pbtn,.nbtn,.set-btn,.fc-btn,.ctag,.weak-chip,.hint-pill,.qsave-btn,.rev-btn,.lv-chip,.search-item .lv-tag,.w-pos,.grace-btn,.qz-tab,.nv,.tq-next,.tq-quit,.q-submit{white-space:nowrap}
+.wcard-top #wtags{flex-shrink:0}
+#fc-toggle,#top-day,.xp-chip,#wtags span,#ctags-inline span,.ex-row .wbtn{white-space:nowrap}
+.topbar .day-chip,.topbar .xp-chip,.acc-btn{flex-shrink:0}
+.topbar .logo{min-width:0}
+#cat-chips button{border:1.5px solid var(--border)!important;background:var(--bg2)!important;color:var(--text)!important;font-weight:600}
+#cat-chips button.sel,#cat-all.sel{background:var(--terra)!important;color:var(--ink)!important;border-color:var(--terra)!important}
+#fc-toggle{border:1.5px solid var(--border)!important;background:var(--bg2)!important;color:var(--text)!important;border-radius:999px!important}
 </style>
 </head>
 <body>
