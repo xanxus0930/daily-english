@@ -168,6 +168,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .qsave-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:var(--bg3);color:var(--t2);margin-top:8px;transition:all .15s}
 .qsave-btn.saved{border-color:var(--ab);background:var(--al);color:var(--amber)}
 
+/* ── 模考與錯題本 ── */
+.tq-timer{font-size:13px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}
+.tq-timer.warn{color:var(--amber)}
+.tq-timer.danger{color:var(--red)}
+.q-opt.chosen{border-color:var(--bb);background:var(--bl);color:var(--blue)}
+.mock-score{font-size:32px;font-weight:700;margin:4px 0}
+.mock-band{display:inline-block;font-size:13px;background:var(--gl);color:var(--green);border:1px solid var(--gb);border-radius:99px;padding:4px 14px;margin:8px 0}
+.mock-part{display:flex;justify-content:space-between;font-size:12px;color:var(--t2);padding:5px 0;border-bottom:1px solid var(--border2)}
+.rv-item{border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;margin-bottom:8px;background:var(--bg2)}
+.rv-q{font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.6}
+.rv-line{font-size:12px;line-height:1.7}
+.rv-wrong{color:var(--red)}
+.rv-right{color:var(--green)}
+.rv-exp{font-size:11px;color:var(--t3);margin-top:4px;line-height:1.6}
+
 /* ── API 用量 ── */
 .usage-box{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
 .usage-hd{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:8px}
@@ -5764,6 +5779,11 @@ function checkMC(btn, chosen) {
     document.querySelectorAll('.q-opt').forEach(function(b){ if (b.textContent === q.ans) b.className = 'q-opt correct'; });
   }
   if (q.w) srsGrade(q.w[0], correct);
+  if (!correct && q.w) {
+    addWrong({ q: q.q, opts: (q.type === 'mc' ? q.opts.map(function(o){ return { txt:o, ok:o === q.ans }; })
+                                              : [{ txt:q.ans, ok:true }]),
+               exp: q.exp, tag: '單字', kind: 'vocab' }, -1);
+  }
   showQFeedback(correct, q);
   if (correct) { qScore++; addXP(10); }
   var qa = S.qacc; qa.total++; if(correct) qa.correct++; S.qacc = qa;
@@ -5780,6 +5800,11 @@ function checkFill() {
   inp.style.borderColor = correct ? 'var(--green)' : 'var(--red)';
   inp.disabled = true;
   if (q.w) srsGrade(q.w[0], correct);
+  if (!correct && q.w) {
+    addWrong({ q: q.q, opts: (q.type === 'mc' ? q.opts.map(function(o){ return { txt:o, ok:o === q.ans }; })
+                                              : [{ txt:q.ans, ok:true }]),
+               exp: q.exp, tag: '單字', kind: 'vocab' }, -1);
+  }
   showQFeedback(correct, q);
   if (correct) { qScore++; addXP(10); }
   var qa = S.qacc; qa.total++; if(correct) qa.correct++; S.qacc = qa;
@@ -6084,7 +6109,7 @@ function resetStats() {
   // Clear all learning keys including new ones
   var keysToRemove = ['de_xp','de_wv','de_days','de_maxday','de_qacc','de_weak','de_badges','de_lstreak',
                       'de_srs','de_pick','de_lesson_b','de_lesson_i','de_lesson_a','de_done_b','de_done_i','de_done_a',
-                      'de_toeic','de_model_quota'];   // de_api_usage 是用量紀錄，不隨學習紀錄重置
+                      'de_toeic','de_model_quota','de_wrong'];   // de_api_usage 是用量紀錄，不隨學習紀錄重置
   keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
   // Also clear daily XP and daily seen keys
   Object.keys(localStorage).forEach(function(k){
@@ -6841,6 +6866,15 @@ function checkDayChange() {
 // 每分鐘檢查一次日期
 setInterval(checkDayChange, 60000);
 
+// 模考進行中切回前景時立刻校正倒數（背景分頁的計時器會被瀏覽器節流甚至凍結，
+// 但截止時間是絕對時間戳，回來後重算就會正確，超時則自動交卷）
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && tState && tState.timed) tickMock();
+});
+window.addEventListener('focus', function() {
+  if (tState && tState.timed) tickMock();
+});
+
 // 從背景切回前景時立刻檢查
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') {
@@ -7265,7 +7299,22 @@ function renderToeicMenu() {
     '<button class="tq-btn" onclick="startToeic(\'p6\')"><b>Part 6　短文填空</b><span>' + TOEIC.p6.length + ' 篇 × 4 空・正確率 ' + pct(st.p6) + '</span></button>' +
     '<button class="tq-btn" onclick="startToeic(\'p7\')"><b>Part 7　短文閱讀</b><span>' + TOEIC.p7.length + ' 篇・正確率 ' + pct(st.p7) + '</span></button>' +
     '<button class="tq-btn" onclick="startToeic(\'vocab\')"><b>商務字彙</b><span>職場／商業／金融類單字・正確率 ' + pct(st.vocab) + '</span></button>' +
-    '</div></div></div>';
+    '</div></div></div>' +
+    '<div class="card"><div class="card-body">' +
+    '<div class="section-label" style="margin-bottom:8px">⏱ 計時模擬考</div>' +
+    '<div class="tq-menu">' +
+    '<button class="tq-btn" onclick="startMock(\'p5timed\')"><b>' + MOCK_SPECS.p5timed.name + '</b><span>' + MOCK_SPECS.p5timed.desc + '</span></button>' +
+    '<button class="tq-btn" onclick="startMock(\'reading\')"><b>' + MOCK_SPECS.reading.name + '</b><span>' + MOCK_SPECS.reading.desc + '</span></button>' +
+    '</div>' +
+    '<div style="font-size:10px;color:var(--t3);margin-top:8px;line-height:1.6">模考期間不顯示對錯，交卷後一次檢討；時間到自動交卷。</div>' +
+    '</div></div>' +
+    (wrongBook().length ? ('<div class="card"><div class="card-body">' +
+      '<div class="section-label" style="margin-bottom:8px">📕 錯題本</div>' +
+      '<div class="tq-menu">' +
+      '<button class="tq-btn" onclick="startToeic(\'wrong\')"><b>重做錯題</b><span>目前累積 ' + wrongBook().length + ' 題・答對就會自動移除</span></button>' +
+      '</div>' +
+      '<button class="tq-quit" style="margin-top:8px" onclick="clearWrongBook()">清空錯題本</button>' +
+      '</div></div>') : '');
   if (weak.length) {
     html += '<div class="card"><div class="card-body"><div class="section-label" style="margin-bottom:8px">你的弱點文法</div>' +
       '<div id="weak-chips"></div></div></div>';
@@ -7285,6 +7334,69 @@ function renderToeicMenu() {
   }
 }
 
+// ── 弱點驅動：讓弱點標籤的題目佔約一半 ──
+function weightedPick(bank, n, weakMap) {
+  var keys = Object.keys(weakMap || {});
+  if (!keys.length || bank.length <= n) return shuffle(bank.slice()).slice(0, n);
+  var weak = [], rest = [];
+  bank.forEach(function(it){ (weakMap[it.t || ''] ? weak : rest).push(it); });
+  if (!weak.length) return shuffle(bank).slice(0, n);
+  var wantWeak = Math.min(weak.length, Math.round(n * 0.5));
+  var picked = shuffle(weak).slice(0, wantWeak).concat(shuffle(rest).slice(0, n - wantWeak));
+  return shuffle(picked).slice(0, n);
+}
+
+// 字彙題優先挑答錯過或今日到期的字
+function vocabPick(pool, n) {
+  var m = srsAll(), today = dstr(0);
+  var hot = [], cold = [];
+  pool.forEach(function(w){
+    var r = m[w[0]];
+    var score = r ? ((r.lapses || 0) * 2 + (r.due <= today ? 1 : 0)) : 0;
+    (score > 0 ? hot : cold).push(w);
+  });
+  var take = shuffle(hot).slice(0, Math.min(hot.length, Math.round(n * 0.5)));
+  var rest = shuffle(cold).slice(0, n - take.length);
+  return shuffle(take.concat(rest)).slice(0, n);
+}
+
+// ── 錯題本 ──
+function wrongBook() { var v = S.g('de_wrong', []); return Array.isArray(v) ? v : []; }
+// Part 6 各篇的題目文字都是「---(1)--- 應填入」，單用題目文字會互相覆蓋，改用複合鍵
+function wrongKey(q, opts, passage) {
+  // 選項每次出題都會洗牌，所以排序後再組鍵，確保同一題永遠得到同一個鍵
+  var sorted = (opts || []).slice().sort();
+  return q + '||' + (passage && passage.title ? passage.title : '') + '||' + sorted.join('/');
+}
+function addWrong(it, myIdx) {
+  var list = wrongBook();
+  var ansIdx = 0;
+  it.opts.forEach(function(o, i){ if (o.ok) ansIdx = i; });
+  var opts = it.opts.map(function(o){ return o.txt; });
+  var entry = { q: it.q, opts: opts, ansIdx: ansIdx,
+                myIdx: myIdx, exp: it.exp, tag: it.tag, kind: it.kind,
+                passage: it.passage ? { title: it.passage.title, text: it.passage.text } : null,
+                key: wrongKey(it.q, opts, it.passage), ts: Date.now() };
+  list = list.filter(function(x){ return wrongKey(x.q, x.opts, x.passage) !== entry.key; });
+  list.push(entry);
+  if (list.length > 200) list = list.slice(-200);
+  S.s('de_wrong', list);
+}
+function removeWrong(it) {
+  var key = (typeof it === 'string') ? null : wrongKey(it.q, it.opts.map(function(o){ return o.txt; }), it.passage);
+  var list = wrongBook().filter(function(x){
+    var k = wrongKey(x.q, x.opts, x.passage);
+    return key ? k !== key : x.q !== it;
+  });
+  S.s('de_wrong', list);
+}
+function clearWrongBook() {
+  if (!confirm('確定清空錯題本嗎？（' + wrongBook().length + ' 題）')) return;
+  S.s('de_wrong', []);
+  renderToeicMenu();
+  toast('錯題本已清空');
+}
+
 function toeicVocabPool() {
   var want = ['職場','商業','金融','管理','溝通','科技'];
   var out = [];
@@ -7299,36 +7411,177 @@ function toeicVocabPool() {
   return out;
 }
 
-function startToeic(part) {
+// 依題型組出 n 題（模考與單題型共用）
+function buildItems(part, n) {
+  var st = toeicStats();
   var items = [];
   if (part === 'p5' || part === 'p2') {
     var bank = (part === 'p5') ? TOEIC.p5.concat(S.g('de_toeic_ai', [])) : TOEIC.p2;
-    items = shuffle(bank.slice()).slice(0, 10).map(function(it){
+    items = weightedPick(bank, n, st.weak).map(function(it){
       var pairs = it.o.map(function(txt, i){ return { txt: txt, ok: i === it.a }; });
       pairs = shuffle(pairs);
       return { kind: part, q: it.q, opts: pairs, exp: it.e, tag: it.t || (part === 'p2' ? '應答' : '文法') };
     });
-  } else if (part === 'p7' || part === 'p6') {
-    var bank = (part === 'p6') ? TOEIC.p6 : TOEIC.p7;
-    var psg = bank[Math.floor(Math.random() * bank.length)];
-    items = psg.qs.map(function(it){
-      var pairs = it.o.map(function(txt, i){ return { txt: txt, ok: i === it.a }; });
+  } else if (part === 'p6' || part === 'p7') {
+    var bank = shuffle(((part === 'p6') ? TOEIC.p6 : TOEIC.p7).slice());
+    for (var b = 0; b < bank.length && items.length < n; b++) {
+      var psg = bank[b];
+      psg.qs.forEach(function(it){
+        if (items.length >= n) return;
+        var pairs = it.o.map(function(txt, i){ return { txt: txt, ok: i === it.a }; });
+        pairs = shuffle(pairs);
+        items.push({ kind: part, q: it.q, opts: pairs, exp: it.e,
+                     tag: (part === 'p6' ? '短文填空' : '閱讀'), passage: psg });
+      });
+    }
+  } else if (part === 'wrong') {
+    items = shuffle(wrongBook().slice()).slice(0, n).map(function(w){
+      var pairs = w.opts.map(function(txt, i){ return { txt: txt, ok: i === w.ansIdx }; });
       pairs = shuffle(pairs);
-      return { kind: part, q: it.q, opts: pairs, exp: it.e,
-               tag: (part === 'p6' ? '短文填空' : '閱讀'), passage: psg };
+      return { kind: 'wrong', q: w.q, opts: pairs, exp: w.exp, tag: w.tag || '錯題',
+               passage: w.passage || null, fromWrong: true };
     });
   } else {
     var pool = toeicVocabPool();
-    if (pool.length < 4) { toast('商務類單字不足'); return; }
-    items = shuffle(pool.slice()).slice(0, 10).map(function(w){
+    if (pool.length < 4) return [];
+    items = vocabPick(pool, n).map(function(w){
       var wrong = shuffle(pool.filter(function(d){ return d[3] !== w[3]; })).slice(0,3);
       var pairs = wrong.map(function(d){ return { txt: d[3], ok:false }; });
       pairs.push({ txt: w[3], ok:true });
-      return { kind:'vocab', q:'「' + w[0] + '」在商務情境中的意思是？', opts: shuffle(pairs), exp:'✓ ' + w[0] + ' = ' + w[3] + '　例：' + w[4], tag:'字彙', word: w };
+      return { kind:'vocab', q:'「' + w[0] + '」在商務情境中的意思是？', opts: shuffle(pairs),
+               exp:'✓ ' + w[0] + ' = ' + w[3] + '　例：' + w[4], tag:'字彙', word: w };
     });
   }
+  return items;
+}
+
+function startToeic(part) {
+  var n = (part === 'p6') ? 4 : (part === 'p7' ? 3 : 10);
+  if (part === 'wrong') n = Math.min(10, wrongBook().length);
+  var items = buildItems(part, n);
+  if (!items.length) { toast(part === 'wrong' ? '錯題本是空的' : '題庫不足'); return; }
   tState = { part: part, items: items, idx: 0, score: 0, answered: false, showText: false };
   renderToeicQ();
+}
+
+// ── 計時模擬考 ──
+var MOCK_SPECS = {
+  p5timed: { name:'Part 5 計時測驗', minutes:15, plan:[['p5',30]],
+             desc:'30 題 / 15 分鐘，對應正式考試 Part 5 的作答節奏' },
+  reading: { name:'Reading 迷你模考', minutes:30, plan:[['p5',20],['p6',8],['p7',12]],
+             desc:'40 題 / 30 分鐘，Part 5+6+7 混合' }
+};
+var _mockTimer = null;
+
+function startMock(key) {
+  var spec = MOCK_SPECS[key];
+  if (!spec) return;
+  var items = [];
+  spec.plan.forEach(function(pl){ items = items.concat(buildItems(pl[0], pl[1])); });
+  if (items.length < 5) { toast('題庫不足，無法組成模考'); return; }
+  tState = { part:'mock', mock:key, spec:spec, items:items, idx:0, score:0,
+             answered:false, showText:false, timed:true, records:[],
+             endAt: Date.now() + spec.minutes * 60000 };
+  if (_mockTimer) clearInterval(_mockTimer);
+  _mockTimer = setInterval(tickMock, 500);
+  renderToeicQ();
+}
+
+function tickMock() {
+  if (!tState || !tState.timed) { clearInterval(_mockTimer); _mockTimer = null; return; }
+  var left = Math.max(0, tState.endAt - Date.now());
+  var el = document.getElementById('tq-timer');
+  if (el) {
+    var mm = Math.floor(left / 60000), ss = Math.floor((left % 60000) / 1000);
+    el.textContent = '⏱ ' + mm + ':' + (ss < 10 ? '0' : '') + ss;
+    el.className = 'tq-timer' + (left <= 60000 ? ' danger' : (left <= 300000 ? ' warn' : ''));
+  }
+  if (left <= 0) { clearInterval(_mockTimer); _mockTimer = null; finishMock(true); }
+}
+
+// 依正確率粗估多益 Reading 分數區間（僅供參考，非官方換算）
+function estimateReadingBand(pct) {
+  var t = [[95,460,495],[90,420,460],[80,360,420],[70,300,360],[60,245,300],[50,190,245],[40,140,190],[0,5,140]];
+  for (var i = 0; i < t.length; i++) if (pct >= t[i][0]) return t[i][1] + '–' + t[i][2];
+  return '5–140';
+}
+
+function finishMock(timeUp) {
+  if (_mockTimer) { clearInterval(_mockTimer); _mockTimer = null; }
+  var recs = tState.records || [];
+  var total = tState.items.length;
+  var answered = recs.length;
+  var correct = recs.filter(function(r){ return r.correct; }).length;
+  var pct = total ? Math.round(correct / total * 100) : 0;
+  var byPart = {};
+  recs.forEach(function(r){
+    byPart[r.kind] = byPart[r.kind] || { t:0, c:0 };
+    byPart[r.kind].t++; if (r.correct) byPart[r.kind].c++;
+  });
+  var names = { p5:'Part 5 文法', p6:'Part 6 填空', p7:'Part 7 閱讀', vocab:'字彙' };
+  var area = document.getElementById('toeic-area');
+  area.innerHTML = '';
+
+  var card = document.createElement('div'); card.className = 'card';
+  var body = document.createElement('div'); body.className = 'card-body';
+  body.style.textAlign = 'center';
+  var h = document.createElement('div');
+  h.style.cssText = 'font-size:13px;color:var(--t3)';
+  h.textContent = tState.spec.name + (timeUp ? '（時間到，自動交卷）' : '');
+  var sc = document.createElement('div'); sc.className = 'mock-score';
+  sc.textContent = correct + ' / ' + total;
+  var ac = document.createElement('div');
+  ac.style.cssText = 'font-size:13px;color:var(--t3)';
+  ac.textContent = '正確率 ' + pct + '%　作答 ' + answered + ' 題' + (answered < total ? '（未作答 ' + (total - answered) + ' 題）' : '');
+  var band = document.createElement('div'); band.className = 'mock-band';
+  band.textContent = '估算 Reading 約 ' + estimateReadingBand(pct) + ' 分';
+  var note = document.createElement('div');
+  note.style.cssText = 'font-size:10px;color:var(--t3);line-height:1.6;margin-bottom:12px';
+  note.textContent = '此為依正確率的粗略推估，非官方換算表，題數也少於正式測驗，僅供追蹤進步用。';
+  body.appendChild(h); body.appendChild(sc); body.appendChild(ac); body.appendChild(band); body.appendChild(note);
+
+  Object.keys(byPart).forEach(function(k){
+    var row = document.createElement('div'); row.className = 'mock-part';
+    var a = document.createElement('span'); a.textContent = names[k] || k;
+    var b2 = document.createElement('span');
+    b2.textContent = byPart[k].c + ' / ' + byPart[k].t + '（' + Math.round(byPart[k].c / byPart[k].t * 100) + '%）';
+    row.appendChild(a); row.appendChild(b2); body.appendChild(row);
+  });
+
+  var again = document.createElement('button');
+  again.className = 'tq-next'; again.style.margin = '12px 4px 0';
+  again.textContent = '再考一次';
+  again.onclick = (function(k){ return function(){ startMock(k); }; })(tState.mock);
+  var back = document.createElement('button');
+  back.className = 'tq-quit'; back.style.margin = '12px 4px 0';
+  back.textContent = '回選單';
+  back.onclick = function(){ tState = null; renderToeicMenu(); };
+  body.appendChild(again); body.appendChild(back);
+  card.appendChild(body); area.appendChild(card);
+
+  // 逐題檢討
+  var wrongRecs = recs.filter(function(r){ return !r.correct; });
+  if (wrongRecs.length) {
+    var rv = document.createElement('div'); rv.className = 'card';
+    var rb = document.createElement('div'); rb.className = 'card-body';
+    var lbl = document.createElement('div'); lbl.className = 'section-label';
+    lbl.style.marginBottom = '10px';
+    lbl.textContent = '答錯的 ' + wrongRecs.length + ' 題（已存入錯題本）';
+    rb.appendChild(lbl);
+    wrongRecs.forEach(function(r){
+      var d = document.createElement('div'); d.className = 'rv-item';
+      var q = document.createElement('div'); q.className = 'rv-q'; q.textContent = r.q;
+      var mine = document.createElement('div'); mine.className = 'rv-line rv-wrong';
+      mine.textContent = '你選：' + (r.myText || '（未作答）');
+      var ans = document.createElement('div'); ans.className = 'rv-line rv-right';
+      ans.textContent = '正解：' + r.ansText;
+      var ex = document.createElement('div'); ex.className = 'rv-exp'; ex.textContent = r.exp || '';
+      d.appendChild(q); d.appendChild(mine); d.appendChild(ans); d.appendChild(ex);
+      rb.appendChild(d);
+    });
+    rv.appendChild(rb); area.appendChild(rv);
+  }
+  tState = null;
 }
 
 function renderToeicQ() {
@@ -7337,9 +7590,10 @@ function renderToeicQ() {
   if (tState.idx >= tState.items.length) { toeicFinish(); return; }
   var it = tState.items[tState.idx];
   tState.answered = false;
-  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-    '<span style="font-size:11px;color:var(--t3)">第 ' + (tState.idx + 1) + ' / ' + tState.items.length + ' 題　' + it.tag + '</span>' +
-    '<button class="tq-quit" onclick="tState=null;renderToeicMenu()">結束</button></div>';
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px">' +
+    '<span style="font-size:11px;color:var(--t3)">第 ' + (tState.idx + 1) + ' / ' + tState.items.length + ' 題　' + esc(it.tag) + '</span>' +
+    (tState.timed ? '<span class="tq-timer" id="tq-timer">⏱ --:--</span>' : '') +
+    '<button class="tq-quit" onclick="quitToeic()">結束</button></div>';
 
   if (it.passage) {
     html += '<div class="tq-passage"><div class="tq-passage-t">' + esc(it.passage.title) + '</div><pre>' + esc(it.passage.text) + '</pre></div>';
@@ -7364,6 +7618,13 @@ function renderToeicQ() {
     btn.addEventListener('click', function(){ checkToeic(btn, i); });
   });
   if (it.kind === 'p2') playP2();
+}
+
+function quitToeic() {
+  if (tState && tState.timed && !confirm('模考還沒結束，確定要離開嗎？（本次成績不會保留）')) return;
+  if (_mockTimer) { clearInterval(_mockTimer); _mockTimer = null; }
+  tState = null;
+  renderToeicMenu();
 }
 
 function esc(s) {
@@ -7391,21 +7652,40 @@ function checkToeic(btn, i) {
   tState.answered = true;
   var it = tState.items[tState.idx];
   var correct = !!it.opts[i].ok;
-  btn.className = 'q-opt ' + (correct ? 'correct' : 'wrong');
-  if (!correct) {
-    document.querySelectorAll('#toeic-area .q-opt').forEach(function(b, j){
-      if (it.opts[j].ok) b.className = 'q-opt correct';
-    });
+  if (!tState.timed) {
+    btn.className = 'q-opt ' + (correct ? 'correct' : 'wrong');
+    if (!correct) {
+      document.querySelectorAll('#toeic-area .q-opt').forEach(function(b, j){
+        if (it.opts[j].ok) b.className = 'q-opt correct';
+      });
+    }
   }
   if (correct) { tState.score++; addXP(10); }
 
   var st = toeicStats();
-  var key = tState.part;
+  var key = (tState.part === 'mock') ? (it.kind === 'wrong' ? 'p5' : it.kind) : tState.part;
   if (!st[key]) st[key] = { t:0, c:0 };
   st[key].t++; if (correct) st[key].c++;
   if (!correct) { st.weak = st.weak || {}; st.weak[it.tag] = (st.weak[it.tag] || 0) + 1; }
   toeicSave(st);
   if (it.kind === 'vocab' && it.word) srsGrade(it.word[0], correct);
+
+  // 錯題本：答錯就收錄，答對就從錯題本移除
+  if (!correct) addWrong(it, i); else removeWrong(it);
+
+  if (tState.timed) {
+    var ansTxt = '';
+    it.opts.forEach(function(o){ if (o.ok) ansTxt = o.txt; });
+    tState.records.push({ kind: it.kind, q: it.q, correct: correct,
+                          myText: it.opts[i].txt, ansText: ansTxt, exp: it.exp, tag: it.tag });
+    btn.className = 'q-opt chosen';
+    document.querySelectorAll('#toeic-area .q-opt').forEach(function(b){ b.disabled = true; });
+    setTimeout(function(){
+      tState.idx++;
+      if (tState.idx >= tState.items.length) finishMock(false); else renderToeicQ();
+    }, 180);
+    return;
+  }
 
   var fb = document.getElementById('tq-fb');
   fb.style.display = '';
