@@ -174,6 +174,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .qsave-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:var(--bg3);color:var(--t2);margin-top:8px;transition:all .15s}
 .qsave-btn.saved{border-color:var(--ab);background:var(--al);color:var(--amber)}
 
+/* ── 備份 ── */
+.bk-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.bk-row .set-btn{flex:1;min-width:96px}
+.bk-area{width:100%;height:78px;padding:9px;border-radius:var(--r2);border:1px solid var(--border);background:var(--bg3);color:var(--t2);font-size:11px;font-family:monospace;resize:vertical;outline:none}
+.bk-area:focus{border-color:var(--blue)}
+.bk-info{font-size:11px;color:var(--t3);line-height:1.7;margin-bottom:8px}
+.bk-warn{color:var(--amber)}
+
 /* ── 文法課 ── */
 .gm-group{font-size:11px;color:var(--t3);margin:14px 0 8px;letter-spacing:.05em}
 .gm-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--border);border-radius:var(--r2);background:var(--bg2);margin-bottom:8px;cursor:pointer;text-align:left;width:100%;font-family:var(--sans)}
@@ -885,6 +893,24 @@ a:hover{color:#643312}
           未設定 Key 時對話頁自動退回原本的腳本模式。<br>
           模型留空即使用 gemini-3.7-flash；過載或當日配額用完時，會自動依序改用 3.6-flash、3.5-flash。<br>
           免費層配額是「每個模型每天 20 次請求」，三個模型合計約 60 次／天，隔天自動恢復。
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>💾 學習資料備份</h3>
+        <div class="bk-info" id="bk-info"></div>
+        <div class="bk-row">
+          <button class="set-btn green" onclick="exportBackup()">匯出備份</button>
+          <button class="set-btn" onclick="copyBackup()">複製到剪貼簿</button>
+          <button class="set-btn" onclick="downloadBackup()">下載檔案</button>
+        </div>
+        <textarea class="bk-area" id="bk-text" placeholder="按「匯出備份」會把備份內容顯示在這裡；要還原時把備份內容貼進來，再按下方的還原。" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+        <div class="bk-row" style="margin-top:8px">
+          <button class="set-btn red" onclick="restoreBackup()">從上面的內容還原</button>
+        </div>
+        <div class="bk-info">
+          備份不含 API Key（避免金鑰跟著檔案外流），還原後需要重新輸入。<br>
+          建議每個月備份一次，換手機或清瀏覽器資料前一定要先備份。
         </div>
       </div>
 
@@ -6280,6 +6306,7 @@ function renderProg() {
   checkBadges();
   renderBadges();
   renderApiUsage();
+  renderBackupInfo();
   renderRoadmap();
   var gEl = document.getElementById('stat-gram');
   if (gEl) gEl.textContent = gramDoneCount() + '/' + GRAMMAR.length;
@@ -6324,7 +6351,8 @@ function resetStats() {
   // Clear all learning keys including new ones
   var keysToRemove = ['de_xp','de_wv','de_days','de_maxday','de_qacc','de_weak','de_badges','de_lstreak',
                       'de_srs','de_pick','de_lesson_b','de_lesson_i','de_lesson_a','de_done_b','de_done_i','de_done_a',
-                      'de_toeic','de_model_quota','de_wrong','de_grammar'];   // de_api_usage 是用量紀錄，不隨學習紀錄重置
+                      'de_toeic','de_model_quota','de_wrong','de_grammar'];
+  // de_last_backup 與 de_api_usage 不隨學習紀錄重置   // de_api_usage 是用量紀錄，不隨學習紀錄重置
   keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
   // Also clear daily XP and daily seen keys
   Object.keys(localStorage).forEach(function(k){
@@ -6718,6 +6746,128 @@ function renderApiUsage() {
   note.textContent = '免費層每個模型每天 ' + FREE_DAILY_LIMIT + ' 次請求，於太平洋時間午夜（台灣約下午 3-4 點）重置。'
     + '此數字只統計這台裝置經由本 App 送出的請求，在其他地方用同一把 Key 不會被算進來。';
   box.appendChild(note);
+}
+
+// ══════════════════════════════════════════════
+// 學習資料備份與還原
+// ══════════════════════════════════════════════
+var BACKUP_SKIP = ['de_apikey'];   // API Key 不進備份
+
+function buildBackup() {
+  var data = {};
+  Object.keys(localStorage).forEach(function(k){
+    if (k.indexOf('de_') !== 0) return;
+    if (BACKUP_SKIP.indexOf(k) >= 0) return;
+    data[k] = localStorage.getItem(k);
+  });
+  return { app:'daily-english', ver:1, ts:new Date().toISOString(),
+           summary: backupSummary(data), data: data };
+}
+
+function backupSummary(data) {
+  function g(k, d) { try { return data[k] !== undefined ? JSON.parse(data[k]) : d; } catch(e) { return d; } }
+  var srs = g('de_srs', {}), saved = g('de_saved', []), wrong = g('de_wrong', []), gram = g('de_grammar', {});
+  return {
+    lessons: ['b','i','a'].reduce(function(a,l){ return a + (parseInt(g('de_done_' + l, 0)) || 0); }, 0),
+    srs: Object.keys(srs).length,
+    saved: saved.length,
+    wrong: wrong.length,
+    grammar: Object.keys(gram).filter(function(k){ return gram[k] && gram[k].read; }).length,
+    xp: g('de_xp', 0),
+    days: (g('de_days', []) || []).length
+  };
+}
+
+function backupText() { return JSON.stringify(buildBackup()); }
+
+function renderBackupInfo() {
+  var el = document.getElementById('bk-info');
+  if (!el) return;
+  var sm = backupSummary((function(){ var d={}; Object.keys(localStorage).forEach(function(k){ if(k.indexOf('de_')===0) d[k]=localStorage.getItem(k); }); return d; })());
+  var bytes = 0;
+  Object.keys(localStorage).forEach(function(k){ if (k.indexOf('de_') === 0) bytes += k.length + String(localStorage.getItem(k)).length; });
+  var last = S.g('de_last_backup', '');
+  var days = last ? Math.floor((Date.now() - new Date(last).getTime()) / 86400000) : null;
+  el.innerHTML = '';
+  var l1 = document.createElement('div');
+  l1.textContent = '目前資料：完成 ' + sm.lessons + ' 課、複習排程 ' + sm.srs + ' 字、單字本 ' +
+                   sm.saved + ' 個、錯題 ' + sm.wrong + ' 題、文法 ' + sm.grammar + ' 課、' +
+                   sm.xp + ' XP（約 ' + Math.round(bytes / 1024 * 10) / 10 + ' KB）';
+  el.appendChild(l1);
+  var l2 = document.createElement('div');
+  if (!last) { l2.className = 'bk-warn'; l2.textContent = '⚠ 還沒有備份過。資料只存在這台裝置的瀏覽器，清除資料或換手機就會消失。'; }
+  else if (days >= 30) { l2.className = 'bk-warn'; l2.textContent = '⚠ 上次備份是 ' + days + ' 天前，建議再備份一次。'; }
+  else { l2.textContent = '上次備份：' + last.slice(0, 10) + (days === 0 ? '（今天）' : '（' + days + ' 天前）'); }
+  el.appendChild(l2);
+}
+
+function exportBackup() {
+  var txt = backupText();
+  var ta = document.getElementById('bk-text');
+  ta.value = txt;
+  ta.select();
+  S.s('de_last_backup', new Date().toISOString());
+  renderBackupInfo();
+  toast('已產生備份（' + Math.round(txt.length / 1024 * 10) / 10 + ' KB），請複製或下載保存');
+}
+
+function copyBackup() {
+  var ta = document.getElementById('bk-text');
+  if (!ta.value) exportBackup();
+  ta.select();
+  ta.setSelectionRange(0, 999999);
+  var done = false;
+  try { done = document.execCommand('copy'); } catch (e) {}
+  if (!done && navigator.clipboard) {
+    navigator.clipboard.writeText(ta.value).then(function(){ toast('已複製到剪貼簿'); },
+      function(){ toast('複製失敗，請長按文字方塊手動複製'); });
+    return;
+  }
+  toast(done ? '已複製到剪貼簿' : '複製失敗，請長按文字方塊手動複製');
+}
+
+function downloadBackup() {
+  var ta = document.getElementById('bk-text');
+  if (!ta.value) exportBackup();
+  try {
+    var blob = new Blob([ta.value], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'daily-english-backup-' + dstr(0) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+    toast('已開始下載備份檔');
+  } catch (e) {
+    toast('此瀏覽器不支援下載，請改用「複製到剪貼簿」');
+  }
+}
+
+function restoreBackup() {
+  var ta = document.getElementById('bk-text');
+  var txt = (ta.value || '').trim();
+  if (!txt) { toast('請先把備份內容貼到文字方塊'); return; }
+  var obj;
+  try { obj = JSON.parse(txt); } catch (e) { toast('備份格式錯誤，不是合法的 JSON'); return; }
+  if (!obj || obj.app !== 'daily-english' || !obj.data || typeof obj.data !== 'object') {
+    toast('這不是本 App 的備份檔'); return;
+  }
+  var keys = Object.keys(obj.data).filter(function(k){ return k.indexOf('de_') === 0; });
+  if (!keys.length) { toast('備份內容是空的'); return; }
+  var sm = obj.summary || backupSummary(obj.data);
+  var msg = '確定要用這份備份覆蓋目前的資料嗎？\n\n' +
+            '備份時間：' + String(obj.ts || '').slice(0, 16).replace('T', ' ') + '\n' +
+            '完成課數：' + sm.lessons + '　複習排程：' + sm.srs + ' 字\n' +
+            '單字本：' + sm.saved + '　錯題：' + sm.wrong + '　文法：' + sm.grammar + ' 課\n\n' +
+            '目前這台裝置的學習紀錄會被取代，且無法復原。';
+  if (!confirm(msg)) return;
+  Object.keys(localStorage).forEach(function(k){
+    if (k.indexOf('de_') === 0 && BACKUP_SKIP.indexOf(k) < 0) localStorage.removeItem(k);
+  });
+  keys.forEach(function(k){ localStorage.setItem(k, obj.data[k]); });
+  toast('還原完成，即將重新載入…');
+  setTimeout(function(){ location.reload(); }, 800);
 }
 
 // ── API settings UI ──
