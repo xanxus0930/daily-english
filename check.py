@@ -181,7 +181,8 @@ except Exception as e:
 print('== 8. DOM id 參照 ==')
 ids_used = set(re.findall(r"getElementById\('([^']+)'\)", src))
 ids_defined = set(re.findall(r'id="([^"]+)"', src))
-dynamic = {'q-fill-inp', 'q-fb', 'typing-bubble', 'tq-script', 'tq-fb', 'tq-ai-status', 'weak-chips'}
+dynamic = {'q-fill-inp', 'q-fb', 'typing-bubble', 'tq-script', 'tq-fb', 'tq-ai-status', 'weak-chips',
+           'gm-fb', 'dt-inp', 'dt-res', 'cls-fb', 'cls-dict-inp', 'cls-dict-res'}
 missing = sorted(ids_used - ids_defined - dynamic)
 if missing:
     fail('程式用到但 HTML 沒有的 id: %s' % ', '.join(missing))
