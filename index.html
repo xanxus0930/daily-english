@@ -174,6 +174,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .qsave-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:var(--bg3);color:var(--t2);margin-top:8px;transition:all .15s}
 .qsave-btn.saved{border-color:var(--ab);background:var(--al);color:var(--amber)}
 
+/* ── 課次切換與上一步 ── */
+.lesson-nav{display:flex;align-items:center;gap:8px;margin:-6px 0 12px}
+.lesson-nav button{flex:0 0 auto;padding:7px 12px;border-radius:99px;border:1px solid var(--border);background:var(--bg2);color:var(--t2);font-size:12px;font-family:var(--sans);cursor:pointer}
+.lesson-nav button:disabled{opacity:.35;cursor:default}
+.lesson-nav .now{flex:1;text-align:center;font-size:12px;color:var(--t3)}
+.cls-back{background:none;border:1px solid var(--border);color:var(--t3);border-radius:99px;padding:7px 14px;font-size:12px;font-family:var(--sans);cursor:pointer;flex:0 0 auto}
+
 /* ── 步調設定與已會標記 ── */
 .pace-row{display:flex;gap:6px;margin-bottom:6px}
 .pace-btn{flex:1;padding:9px 4px;border-radius:var(--r2);border:1px solid var(--border);background:var(--bg2);color:var(--t2);font-size:12px;font-family:var(--sans);cursor:pointer}
@@ -657,6 +664,7 @@ a:hover{color:#643312}
 
       <!-- 一堂課入口 -->
       <button class="cls-start" id="cls-start" onclick="startClass()"></button>
+      <div class="lesson-nav" id="lesson-nav"></div>
 
       <!-- 新手引導：今日任務 -->
       <div id="guide-card"></div>
@@ -2851,7 +2859,7 @@ b: [
     ["give it a shot", "ɡɪv ɪt ə ʃɒt", "phr.", "試試看；嘗試一下", "Just give it a shot—you might be surprised!", "就試試看，你可能會驚喜！", "Give(給)+it(它)+a(一個)+shot(嘗試)→給它一次嘗試→試試看。", "worth a shot=值得一試/give it a try=試試/just try it=就試試", "'Give it a shot' was lighter than 'Try it.' Less pressure, same invitation. She used it when she sensed resistance and wanted to lower the stakes of the attempt.", "溝通,激勵,聊天"],
     ["fair warning", "fɛr ˈwɔːrnɪŋ", "phr.", "提前警告；預先告知", "Fair warning—this movie is really long.", "提前警告，這部電影真的很長。", "Fair(公平)+warning(警告)→公平地提前警告→提前警告。", "just a fair warning=只是提前警告/fair warning though=不過提前告知/consider yourself warned=你已被告知", "She gave fair warnings as a courtesy—preparing people for what was coming without overselling the difficulty. Forewarned is forearmed and considerate.", "溝通,社交,聊天"],
     ["you had me at", "juː hæd miː æt", "phr.", "你一說…我就心動了", "You had me at 'free coffee'—I'm definitely coming.", "你一說「免費咖啡」我就心動了，我肯定來。", "You(你)+had(擁有)+me(我)+at(在)→在那個詞的時候你就抓住我了→你一說…我就心動了。", "you had me at hello=你一開口我就淪陷/you had me at free=你一說免費我就同意", "From the film that made it famous to everyday use—she used it to show she'd been won over, immediately and completely. Warmth with wit.", "溝通,社交,聊天"],
-    ["catch you later", "kætʃ juː ˈleɪtər", "phr.", "待會見；下次見", "Alright, catch you later—thanks for everything!", "好了，待會見，謝謝你一切！", "Catch(抓到)+you(你)+later(之後)→之後再見到你→待會見。", "catch you later=待會見/catch you on the flip=下次見/see you around=到處見", "She closed conversations warmly. 'Catch you later' was casual but caring. It said: this isn't the last time. There will be a later.", "溝通,社交,聊天"]],
+    ["catch you later", "kætʃ juː ˈleɪtər", "phr.", "待會見；下次見", "Alright, catch you later—thanks for everything!", "好了，待會見，謝謝你一切！", "Catch(抓到)+you(你)+later(之後)→之後再見到你→待會見。", "catch you later=待會見/catch you on the flip side=回頭見/see you around=改天再碰面", "She closed conversations warmly. 'Catch you later' was casual but caring. It said: this isn't the last time. There will be a later.", "溝通,社交,聊天"]],
 i: [
 ["achieve", "əˈtʃiːv", "v.", "達成；實現", "You achieve what you consistently work toward.", "你達到的是你一貫努力的目標。", "Achievement = 成就。High achiever = 高成就者。Achievable = 可達成的。", "achievement=成就/high achiever=高成就者/achievable goal=可達成目標/sense of achievement=成就感", "She set one major goal per year. She wrote it down and worked on it every day. By year five, the impossible had become ordinary.", "職場,激勵"],
 ["adapt", "əˈdæpt", "v.", "適應；改編", "Successful people adapt quickly to changing conditions.", "成功的人迅速適應不斷變化的條件。", "Adaptable = 適應性強的。Adaptation = 適應（名詞）。", "adaptable=適應性強/adaptation=適應/adapt to change=適應變化/highly adaptable=非常有適應力", "The market changed overnight. Teams that adapted survived. Teams that resisted did not. Adaptability is not a soft skill — it is the most important one.", "商業,職場"],
@@ -8713,6 +8721,21 @@ function quitClass() {
   updateGoalBar();
 }
 
+// 只允許退回「不計分」的步驟（導入、單字），避免練習題重複計分
+function canGoBack() {
+  if (!cState || cState.idx <= 0) return false;
+  var prev = cState.steps[cState.idx - 1];
+  return prev && (prev.type === 'intro' || prev.type === 'word');
+}
+
+function classPrev() {
+  if (!canGoBack()) return;
+  cState.idx--;
+  cState.answered = false;
+  if (cState.steps[cState.idx].type === 'word') S.s(classSaveKey(), cState.idx);
+  renderClass();
+}
+
 function classNext() {
   if (!cState) return;
   cState.idx++;
@@ -8750,18 +8773,27 @@ function renderClass() {
     b.onclick = fn || classNext;
     foot.appendChild(b); return b;
   }
+  if (canGoBack()) {
+    var back = document.createElement('button');
+    back.className = 'cls-back';
+    back.textContent = '‹ 上一步';
+    back.onclick = classPrev;
+    foot.appendChild(back);
+  }
 
   if (st.type === 'intro') {
     phase('第 ' + getLesson(lv) + ' 課');
     head('今天的主題：' + cState.theme);
-    para('這堂課大約 15 分鐘，會照這個順序走：');
+    var nQuiz = cState.steps.filter(function(x){ return x.type === 'quiz' || x.type === 'gquiz'; }).length;
+    var nDict = cState.steps.filter(function(x){ return x.type === 'dict'; }).length;
+    para('這堂課大約 ' + Math.max(8, Math.round(cState.words.length * 0.7 + 5)) + ' 分鐘，會照這個順序走：');
     var ul = document.createElement('div');
     ul.className = 'cls-list';
     ul.textContent = '';
     [['1', cState.words.length + ' 個新單字，一個一個講'],
      ['2', '一個文法點：' + cState.grammar.name],
-     ['3', '5 題練習，把單字和文法用出來'],
-     ['4', '2 句聽寫'],
+     ['3', nQuiz + ' 題練習，把單字和文法用出來'],
+     ['4', nDict + ' 句聽寫'],
      ['5', '收尾，看今天學到什麼']].forEach(function(x){
       var d = document.createElement('div');
       d.textContent = x[0] + '. ' + x[1];
@@ -9009,6 +9041,35 @@ function checkClassDict(st) {
   foot.appendChild(b);
 }
 
+// 切到別課（往回複習，或往前看）。已完成的紀錄不會因此減少。
+function gotoLesson(d) {
+  var cur = getLesson(lv), max = getDaysForLv(lv), n = cur + d;
+  if (n < 1) { toast('已經是第 1 課了'); return; }
+  if (n > max) { toast('已經是最後一課了'); return; }
+  setLesson(lv, n);
+  localStorage.removeItem('de_class_' + lv + '_' + cur);
+  wIdx = 0;
+  initDaily(); renderWord(); renderReview(); buildQuiz(); renderProg();
+  toast('切到第 ' + n + ' 課');
+}
+
+function renderLessonNav() {
+  var el = document.getElementById('lesson-nav');
+  if (!el) return;
+  el.innerHTML = '';
+  var cur = getLesson(lv), max = getDaysForLv(lv);
+  var prev = document.createElement('button');
+  prev.textContent = '‹ 上一課'; prev.disabled = cur <= 1;
+  prev.onclick = function(){ gotoLesson(-1); };
+  var now = document.createElement('span');
+  now.className = 'now';
+  now.textContent = '第 ' + cur + ' / ' + max + ' 課';
+  var next = document.createElement('button');
+  next.textContent = '下一課 ›'; next.disabled = cur >= max;
+  next.onclick = function(){ gotoLesson(1); };
+  el.appendChild(prev); el.appendChild(now); el.appendChild(next);
+}
+
 function renderClassEntry() {
   var b = document.getElementById('cls-start');
   if (!b) return;
@@ -9026,6 +9087,7 @@ function renderClassEntry() {
     : '';
   b.appendChild(t); b.appendChild(sp);
   b.onclick = function(){ startClass(resuming); };
+  renderLessonNav();
 }
 
 // ══════════════════════════════════════════════
