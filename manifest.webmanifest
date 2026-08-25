@@ -1,7 +1,7 @@
 {
   "name": "每日英語",
   "short_name": "每日英語",
-  "description": "每天 15 個單字，含間隔複習、測驗與 AI 對話練習",
+  "description": "一堂課學 8 個單字，含文法、間隔複習、多益練習與 AI 對話",
   "lang": "zh-TW",
   "start_url": "./",
   "scope": "./",
