@@ -3,7 +3,7 @@
    - 圖示／字型：快取優先
    - Gemini API：一律走網路，不快取
    改版時把 CACHE 的版本號 +1，舊快取會在啟用時清掉。 */
-var CACHE = 'daily-english-v4';
+var CACHE = 'daily-english-v5';
 var ENTRY = './index.html';          // 部署入口檔名
 var CORE_REQUIRED = ['./', ENTRY];   // 缺這兩個就沒有離線可言
 var CORE_OPTIONAL = [
