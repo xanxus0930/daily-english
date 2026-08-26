@@ -174,6 +174,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .qsave-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:var(--bg3);color:var(--t2);margin-top:8px;transition:all .15s}
 .qsave-btn.saved{border-color:var(--ab);background:var(--al);color:var(--amber)}
 
+/* ── 真人發音快取 ── */
+.hd-bar{display:flex;align-items:center;gap:8px;margin:6px 0}
+.hd-bar .fill{flex:1;height:6px;border-radius:99px;background:var(--bg3);overflow:hidden}
+.hd-bar .fill i{display:block;height:100%;background:var(--green);width:0;transition:width .2s}
+.hd-bar span{flex:0 0 auto;font-size:11px;color:var(--t3)}
+
 /* ── 真人發音 ── */
 .hd-btn{background:var(--gl);border:1px solid var(--gb);color:var(--green);border-radius:99px;padding:5px 11px;font-size:11px;font-family:var(--sans);cursor:pointer;white-space:nowrap}
 .hd-btn:disabled{opacity:.5;cursor:default}
@@ -1078,9 +1084,23 @@ a:hover{color:#643312}
           <select id="tts-voice-sel" onchange="setTtsVoice(this.value)"></select>
           <button class="voice-try" onclick="speakHD('Please confirm the shipping schedule by Friday.', this)">🎧 試聽</button>
         </div>
-        <div class="hd-note" style="margin-bottom:12px">
-          裝置語音聽起來太機械時，按單字卡或課堂上的「🎧 真人」，會用 AI 語音重念一次，
-          聽起來接近真人。每次約要等 3 秒、會消耗 API 額度，同一個字第二次播放不用再等。
+        <div class="hd-note">
+          裝置語音太機械時，按單字卡或課堂上的「🎧 真人」會用 AI 語音重念。
+          <b>抓過的字會永久存在手機裡，之後不再消耗額度，離線也能聽。</b>
+        </div>
+        <div class="voice-row" style="margin-top:8px">
+          <button class="voice-try" style="flex:1" onclick="prefetchLesson(false)">⬇️ 下載今天這課的單字發音</button>
+        </div>
+        <div class="voice-row" style="margin-top:-2px">
+          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="prefetchLesson(true)">⬇️ 連例句一起下載（花較多額度）</button>
+        </div>
+        <div class="hd-bar" id="hd-pre-bar" style="display:none">
+          <div class="fill"><i id="hd-pre-fill"></i></div>
+          <span id="hd-pre-txt"></span>
+        </div>
+        <div class="hd-note" id="hd-cache"></div>
+        <div class="voice-row" style="margin-top:6px;margin-bottom:12px">
+          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="ttsClear()">🗑 清除已存的發音</button>
         </div>
 
         <div style="font-size:12px;color:var(--t2);margin-bottom:6px">語速</div>
@@ -5540,8 +5560,151 @@ var TTS_VOICES = [
   { id:'Aoede',  name:'Aoede（女聲・柔和）' },
   { id:'Leda',   name:'Leda（女聲・年輕）' }
 ];
-var _ttsCache = {};      // 這次開啟期間的快取，避免重複花額度
+var _ttsCache = {};      // 記憶體快取（本次開啟期間）
 var _ttsBusy = false;
+var _ttsDB = null;
+
+// 永久快取：存進 IndexedDB，換頁、重開 App、甚至離線都還在
+function ttsDB() {
+  return new Promise(function(res, rej){
+    if (_ttsDB) { res(_ttsDB); return; }
+    if (!window.indexedDB) { rej(new Error('no idb')); return; }
+    var rq = indexedDB.open('de_tts', 1);
+    rq.onupgradeneeded = function(){ rq.result.createObjectStore('audio'); };
+    rq.onsuccess = function(){ _ttsDB = rq.result; res(_ttsDB); };
+    rq.onerror = function(){ rej(rq.error); };
+  });
+}
+function ttsGet(key) {
+  return ttsDB().then(function(db){
+    return new Promise(function(res){
+      var r = db.transaction('audio').objectStore('audio').get(key);
+      r.onsuccess = function(){ res(r.result || null); };
+      r.onerror = function(){ res(null); };
+    });
+  }).catch(function(){ return null; });
+}
+function ttsPut(key, blob) {
+  return ttsDB().then(function(db){
+    return new Promise(function(res){
+      var tx = db.transaction('audio', 'readwrite');
+      tx.objectStore('audio').put(blob, key);
+      tx.oncomplete = function(){ res(true); };
+      tx.onerror = function(){ res(false); };
+    });
+  }).catch(function(){ return false; });
+}
+function ttsStats() {
+  return ttsDB().then(function(db){
+    return new Promise(function(res){
+      var st = db.transaction('audio').objectStore('audio');
+      var n = 0, bytes = 0;
+      var cur = st.openCursor();
+      cur.onsuccess = function(e){
+        var c = e.target.result;
+        if (!c) { res({ n: n, bytes: bytes }); return; }
+        n++; bytes += (c.value && c.value.size) || 0;
+        c.continue();
+      };
+      cur.onerror = function(){ res({ n: n, bytes: bytes }); };
+    });
+  }).catch(function(){ return { n: 0, bytes: 0 }; });
+}
+function ttsClear() {
+  ttsDB().then(function(db){
+    var tx = db.transaction('audio', 'readwrite');
+    tx.objectStore('audio').clear();
+    tx.oncomplete = function(){ _ttsCache = {}; renderHdCache(); toast('已清除真人發音快取'); };
+  }).catch(function(){ toast('清除失敗'); });
+}
+
+// 只取音訊，不播放。給預先下載與播放共用
+function fetchHD(text) {
+  var key = ttsVoice() + '|' + text;
+  if (_ttsCache[key]) return Promise.resolve(_ttsCache[key]);
+  return ttsGet(key).then(function(blob){
+    if (blob) { var u = URL.createObjectURL(blob); _ttsCache[key] = u; return u; }
+    if (!hasApiKey()) return Promise.reject(new Error('NO_KEY'));
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 25000);
+    bumpApiUsage(TTS_MODEL, 'req');
+    return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + TTS_MODEL + ':generateContent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(S.apiKey || '').trim() },
+      signal: ctrl ? ctrl.signal : undefined,
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: text }] }],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ttsVoice() } } }
+        }
+      })
+    }).then(function(r){
+      clearTimeout(timer);
+      if (!r.ok) return r.text().then(function(t){ throw new Error(r.status + ' ' + t.slice(0, 100)); });
+      return r.json();
+    }).then(function(d){
+      var part = ((((d.candidates || [])[0] || {}).content || {}).parts || [])[0] || {};
+      var inl = part.inlineData || part.inline_data;
+      if (!inl || !inl.data) throw new Error('沒有取得音訊');
+      var mime = inl.mimeType || inl.mime_type || '';
+      var rate = parseInt((mime.match(/rate=(\d+)/) || [])[1] || 24000);
+      var bin = atob(inl.data), arr = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      var b = pcmToWav(arr, rate);
+      bumpApiUsage(TTS_MODEL, 'ok');
+      ttsPut(key, b);
+      var url = URL.createObjectURL(b);
+      _ttsCache[key] = url;
+      return url;
+    });
+  });
+}
+
+// 把今天這一課的單字（與例句）一次抓好，之後就完全不用再花額度
+var _preBusy = false;
+function prefetchLesson(withExamples) {
+  if (_preBusy) { toast('已經在下載了'); return; }
+  if (!hasApiKey()) { toast('需要先在設定頁填入 API Key'); return; }
+  var list = [];
+  (todayWords || []).forEach(function(w){
+    list.push(w[0]);
+    if (withExamples) list.push(w[4]);
+  });
+  if (!list.length) { toast('今天沒有要下載的內容'); return; }
+  _preBusy = true;
+  var bar = document.getElementById('hd-pre-bar');
+  var fill = document.getElementById('hd-pre-fill');
+  var txt = document.getElementById('hd-pre-txt');
+  if (bar) bar.style.display = 'flex';
+  var i = 0, okN = 0, failN = 0;
+  function step() {
+    if (i >= list.length) {
+      _preBusy = false;
+      if (txt) txt.textContent = '完成：成功 ' + okN + ' 個' + (failN ? '，失敗 ' + failN + ' 個' : '');
+      if (fill) fill.style.width = '100%';
+      renderHdCache();
+      toast(failN ? ('下載完成，' + failN + ' 個失敗（多半是額度用完）') : '這一課的發音都下載好了');
+      return;
+    }
+    var t = list[i];
+    if (txt) txt.textContent = (i + 1) + ' / ' + list.length + '　' + t.slice(0, 22);
+    if (fill) fill.style.width = Math.round(i / list.length * 100) + '%';
+    fetchHD(t).then(function(){ okN++; }).catch(function(){ failN++; })
+      .then(function(){ i++; setTimeout(step, 300); });
+  }
+  step();
+}
+
+function renderHdCache() {
+  var el = document.getElementById('hd-cache');
+  if (!el) return;
+  ttsStats().then(function(st){
+    el.textContent = st.n
+      ? ('已存 ' + st.n + ' 段發音，約 ' + (st.bytes / 1048576).toFixed(1) + ' MB。這些字之後不會再消耗額度，離線也能聽。')
+      : '還沒有存下任何發音。抓過的字會永久保存，同一個字一輩子只花一次額度。';
+  });
+}
 
 function ttsVoice() {
   var v = S.g('de_tts_voice', 'Kore');
@@ -5564,7 +5727,6 @@ function pcmToWav(bytes, rate) {
 
 function speakHD(text, btn) {
   if (!text) return;
-  if (!hasApiKey()) { toast('真人發音需要先在設定頁填入 API Key'); return; }
   if (_ttsBusy) { toast('上一個還在產生中，等一下'); return; }
   var key = ttsVoice() + '|' + text;
   if (_ttsCache[key]) { new Audio(_ttsCache[key]).play(); return; }
@@ -5576,42 +5738,15 @@ function speakHD(text, btn) {
     if (btn) { btn.disabled = false; btn.textContent = old; }
     if (msg) toast(msg);
   }
-  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-  var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 25000);
-  bumpApiUsage(TTS_MODEL, 'req');
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/' + TTS_MODEL + ':generateContent', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(S.apiKey || '').trim() },
-    signal: ctrl ? ctrl.signal : undefined,
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: text }] }],
-      generationConfig: {
-        responseModalities: ['AUDIO'],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ttsVoice() } } }
-      }
-    })
-  }).then(function(r){
-    clearTimeout(timer);
-    if (!r.ok) return r.text().then(function(t){ throw new Error(r.status + ' ' + t.slice(0, 120)); });
-    return r.json();
-  }).then(function(d){
-    var part = ((((d.candidates || [])[0] || {}).content || {}).parts || [])[0] || {};
-    var inl = part.inlineData || part.inline_data;
-    if (!inl || !inl.data) throw new Error('沒有取得音訊');
-    var mime = inl.mimeType || inl.mime_type || '';
-    var rate = parseInt((mime.match(/rate=(\d+)/) || [])[1] || 24000);
-    var bin = atob(inl.data), arr = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    var url = URL.createObjectURL(pcmToWav(arr, rate));
-    _ttsCache[key] = url;
-    bumpApiUsage(TTS_MODEL, 'ok');
+  fetchHD(text).then(function(url){
     new Audio(url).play();
+    renderHdCache();
     done('');
   }).catch(function(e){
-    clearTimeout(timer);
     var m = String(e && e.message || e);
+    if (m.indexOf('NO_KEY') >= 0) { done('真人發音需要先在設定頁填入 API Key'); return; }
     if (m.indexOf('429') >= 0) { markQuotaUsedUp(TTS_MODEL); done('今天的真人發音額度用完了，明天再試'); }
-    else { done('真人發音失敗，先用裝置語音：' + m.slice(0, 40)); speak(text); }
+    else { done('真人發音失敗，先用裝置語音'); speak(text); }
   });
 }
 
@@ -6572,6 +6707,7 @@ function renderProg() {
   renderApiUsage();
   renderVoiceUI();
   renderTtsVoiceUI();
+  renderHdCache();
   renderStageUI();
   renderPaceUI();
   renderBackupInfo();
