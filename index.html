@@ -5490,6 +5490,16 @@ function englishVoices() {
       return a.name.localeCompare(b.name);
     });
 }
+// iOS 把壓縮版與高音質版放在同一個名字下，差別在 voiceURI
+function voiceQuality(v) {
+  var id = ((v && (v.voiceURI || '')) + ' ' + (v && v.name || '')).toLowerCase();
+  if (/premium|高音質/.test(id)) return { tag: '高音質', good: true };
+  if (/enhanced|增強/.test(id)) return { tag: '增強音質', good: true };
+  if (/neural|natural|wavenet|studio/.test(id)) return { tag: '神經網路', good: true };
+  if (/compact/.test(id)) return { tag: '壓縮版', good: false };
+  return { tag: '', good: false };
+}
+
 function savedVoice() {
   var id = S.g('de_voice', '');
   if (!id) return null;
@@ -5519,8 +5529,9 @@ function dumpVoices() {
   }
   all.filter(function(v){ return /^en/i.test(v.lang || ''); }).forEach(function(v){
     var d = document.createElement('div');
+    var q = voiceQuality(v);
     d.textContent = '• ' + v.name + '　[' + v.lang + ']'
-      + (v.localService ? ' 內建' : ' 線上') + (v.default ? ' 預設' : '');
+      + (q.tag ? ' ' + q.tag : '') + (v.localService ? ' 內建' : ' 線上') + (v.default ? ' 預設' : '');
     box.appendChild(d);
   });
   var other = all.length - all.filter(function(v){ return /^en/i.test(v.lang || ''); }).length;
@@ -5579,18 +5590,43 @@ function renderVoiceUI() {
   var d = document.createElement('option');
   d.value = ''; d.textContent = list.length ? '自動挑選（預設）' : '此裝置尚未載入語音';
   sel.appendChild(d);
+  // 高音質的排前面
+  list.sort(function(a, b){
+    var qa = voiceQuality(a).good ? 0 : 1, qb = voiceQuality(b).good ? 0 : 1;
+    if (qa !== qb) return qa - qb;
+    return (a.name || '').localeCompare(b.name || '');
+  });
   list.forEach(function(v){
     var o = document.createElement('option');
     o.value = v.voiceURI || v.name;
     var tag = /GB|UK/i.test(v.lang) ? '英式' : (/AU/i.test(v.lang) ? '澳洲' : (/IN/i.test(v.lang) ? '印度' : '美式'));
-    o.textContent = v.name + '（' + tag + (v.localService ? '・裝置內建' : '・線上') + '）';
+    var q = voiceQuality(v);
+    o.textContent = (q.good ? '⭐ ' : '') + v.name + '（' + tag
+                  + (q.tag ? '・' + q.tag : (v.localService ? '・裝置內建' : '・線上')) + '）';
     if (cur === o.value) o.selected = true;
     sel.appendChild(o);
   });
   var n = document.getElementById('voice-count');
-  if (n) n.textContent = list.length
-    ? ('這台裝置有 ' + list.length + ' 個英語發音人，聽不清楚就換一個試試。手機上通常比電腦多很多。')
-    : '還沒抓到語音清單。請按右邊的「🔄 重新偵測」，或先播放任何一段朗讀再回來。';
+  if (n) {
+    n.innerHTML = '';
+    if (!list.length) {
+      n.textContent = '還沒抓到語音清單。請按「🔄 重新偵測語音」，或先播放任何一段朗讀再回來。';
+    } else {
+      var good = list.filter(function(v){ return voiceQuality(v).good; }).length;
+      var l1 = document.createElement('div');
+      l1.textContent = '這台裝置有 ' + list.length + ' 個英語發音人，其中 ' + good + ' 個是高音質（標 ⭐）。';
+      n.appendChild(l1);
+      if (!good) {
+        var l2 = document.createElement('div');
+        l2.style.marginTop = '4px';
+        l2.innerHTML = '<b>目前全部都是壓縮版，聽起來機械是正常的。</b>'
+          + 'iPhone 請到「設定 → 輔助使用 → 朗讀內容 → 語音 → 英文」，'
+          + '點名字旁邊的雲朵圖示下載<b>「增強音質」或「高音質」</b>版本，回來按「🔄 重新偵測語音」。'
+          + '建議先下載 Allison（增強音質，約 38 MB）試聽，滿意再下載更大的。';
+        n.appendChild(l2);
+      }
+    }
+  }
 }
 
 // ── 真人發音：用 Gemini 的語音模型念，蓋過裝置那些機械音 ──
@@ -6000,12 +6036,19 @@ function getBestVoice(lang) {
   if (pick) return pick;
   var voices = _loadVoices();
   if (!voices.length) return null;
-  // 先挑名字帶「高品質」字樣的（Enhanced / Premium / Neural / Natural / Google / Siri）
-  var GOOD = /(enhanced|premium|neural|natural|google|siri|wavenet|studio)/i;
-  var nice = voices.filter(function(v){ return v.lang === lang && GOOD.test(v.name || ''); });
-  if (nice.length) return nice[0];
-  var niceAny = voices.filter(function(v){ return /^en/i.test(v.lang || '') && GOOD.test(v.name || ''); });
-  if (niceAny.length) return niceAny[0];
+  // 先挑高音質的：iOS 的差別藏在 voiceURI，不是名字
+  function best(list) {
+    var prem = list.filter(function(v){ return /premium/i.test(v.voiceURI || ''); });
+    if (prem.length) return prem[0];
+    var good = list.filter(function(v){ return voiceQuality(v).good; });
+    if (good.length) return good[0];
+    var named = list.filter(function(v){ return /(google|siri|wavenet|studio)/i.test(v.name || ''); });
+    return named[0] || null;
+  }
+  var nice = best(voices.filter(function(v){ return v.lang === lang; }));
+  if (nice) return nice;
+  var niceAny = best(voices.filter(function(v){ return /^en/i.test(v.lang || ''); }));
+  if (niceAny) return niceAny;
   // Prefer local/default voice for the accent
   var local = voices.filter(function(v) { return v.lang === lang && v.localService; });
   if (local.length) return local[0];
