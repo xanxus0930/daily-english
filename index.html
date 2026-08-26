@@ -1086,13 +1086,15 @@ a:hover{color:#643312}
         </div>
         <div class="hd-note">
           裝置語音太機械時，按單字卡或課堂上的「🎧 真人」會用 AI 語音重念。
-          <b>抓過的字會永久存在手機裡，之後不再消耗額度，離線也能聽。</b>
+          <b>抓過的字會永久存在手機裡，之後不再消耗額度，離線也能聽。</b><br>
+          免費額度是<b>一天 10 次請求</b>，而「下載這課」整課 8 個字<b>只算 1 次</b>，
+          所以每天上一課完全夠用，學過的字也永遠不用再抓。
         </div>
         <div class="voice-row" style="margin-top:8px">
-          <button class="voice-try" style="flex:1" onclick="prefetchLesson(false)">⬇️ 下載今天這課的單字發音</button>
+          <button class="voice-try" style="flex:1" onclick="prefetchLesson(false)">⬇️ 下載這課單字（只花 1 次額度）</button>
         </div>
         <div class="voice-row" style="margin-top:-2px">
-          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="prefetchLesson(true)">⬇️ 連例句一起下載（花較多額度）</button>
+          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="prefetchLesson(true)">⬇️ 連例句一起下載（約 2 次額度）</button>
         </div>
         <div class="hd-bar" id="hd-pre-bar" style="display:none">
           <div class="fill"><i id="hd-pre-fill"></i></div>
@@ -5667,6 +5669,106 @@ function fetchHD(text) {
   });
 }
 
+// 依靜音把一整段語音切成一個一個字
+function splitBySilence(int16, rate, want) {
+  var win = Math.round(rate * 0.02), lv = [], i, j;
+  for (i = 0; i + win < int16.length; i += win) {
+    var mx = 0;
+    for (j = i; j < i + win; j++) { var v = int16[j] < 0 ? -int16[j] : int16[j]; if (v > mx) mx = v; }
+    lv.push(mx);
+  }
+  var peak = 0;
+  for (i = 0; i < lv.length; i++) if (lv[i] > peak) peak = lv[i];
+  if (!peak) return null;
+  var thr = peak * 0.02;
+
+  function gapsAtLeast(minWins) {
+    var runs = [], cur = null, k;
+    for (k = 0; k < lv.length; k++) {
+      if (lv[k] < thr) { if (cur === null) cur = k; }
+      else { if (cur !== null) { if (k - cur >= minWins) runs.push([cur, k]); cur = null; } }
+    }
+    if (cur !== null && lv.length - cur >= minWins) runs.push([cur, lv.length]);
+    return runs.filter(function(r){ return r[0] > 7 && r[1] < lv.length - 7; });
+  }
+
+  // 短句的分隔靜音短、長句中間也會有小停頓，所以逐步加大門檻直到段數剛好對上
+  var inner = null;
+  var tries = [17, 25, 35, 45, 60, 80];   // 0.34 / 0.5 / 0.7 / 0.9 / 1.2 / 1.6 秒
+  for (i = 0; i < tries.length; i++) {
+    var g = gapsAtLeast(tries[i]);
+    if (g.length === want - 1) { inner = g; break; }
+    if (g.length < want - 1) break;       // 再放寬也只會更少
+  }
+  if (!inner) return null;
+
+  // 切在靜音的邊緣，不要把整段空白也留著
+  var starts = [0], ends = [];
+  inner.forEach(function(r){ ends.push(r[0]); starts.push(r[1]); });
+  ends.push(lv.length);
+  var pad = Math.round(rate * 0.06);
+  var out = [];
+  for (i = 0; i < want; i++) {
+    var a0 = starts[i], b0 = ends[i];
+    while (a0 < b0 && lv[a0] < thr) a0++;
+    while (b0 > a0 && lv[b0 - 1] < thr) b0--;
+    if (b0 <= a0) { a0 = starts[i]; b0 = ends[i]; }
+    var a = Math.max(0, a0 * win - pad);
+    var b = Math.min(int16.length, b0 * win + pad);
+    out.push(int16.subarray(a, b));
+  }
+  return out;
+}
+function int16ToWav(seg, rate) {
+  var bytes = new Uint8Array(seg.buffer, seg.byteOffset, seg.length * 2);
+  return pcmToWav(bytes, rate);
+}
+
+// 一次請求念完整批文字，切開後各自存進快取。省下 N-1 次額度。
+function fetchHDBatch(list) {
+  if (!hasApiKey()) return Promise.reject(new Error('NO_KEY'));
+  var prompt = 'Read each item clearly with a full one second pause between them. '
+             + 'Do not add any extra words.\n' + list.join('\n');
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 90000);
+  bumpApiUsage(TTS_MODEL, 'req');
+  return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + TTS_MODEL + ':generateContent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(S.apiKey || '').trim() },
+    signal: ctrl ? ctrl.signal : undefined,
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ttsVoice() } } }
+      }
+    })
+  }).then(function(r){
+    clearTimeout(timer);
+    if (!r.ok) return r.text().then(function(t){ throw new Error(r.status + ' ' + t.slice(0, 100)); });
+    return r.json();
+  }).then(function(d){
+    var part = ((((d.candidates || [])[0] || {}).content || {}).parts || [])[0] || {};
+    var inl = part.inlineData || part.inline_data;
+    if (!inl || !inl.data) throw new Error('沒有取得音訊');
+    var mime = inl.mimeType || inl.mime_type || '';
+    var rate = parseInt((mime.match(/rate=(\d+)/) || [])[1] || 24000);
+    var bin = atob(inl.data), arr = new Uint8Array(bin.length), i;
+    for (i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    var int16 = new Int16Array(arr.buffer, 0, Math.floor(arr.length / 2));
+    var segs = splitBySilence(int16, rate, list.length);
+    if (!segs) throw new Error('SPLIT_FAIL');
+    bumpApiUsage(TTS_MODEL, 'ok');
+    var jobs = segs.map(function(seg, k){
+      var blob = int16ToWav(seg, rate);
+      var key = ttsVoice() + '|' + list[k];
+      _ttsCache[key] = URL.createObjectURL(blob);
+      return ttsPut(key, blob);
+    });
+    return Promise.all(jobs).then(function(){ return segs.length; });
+  });
+}
+
 // 把今天這一課的單字（與例句）一次抓好，之後就完全不用再花額度
 var _preBusy = false;
 function prefetchLesson(withExamples) {
@@ -5684,6 +5786,33 @@ function prefetchLesson(withExamples) {
   var txt = document.getElementById('hd-pre-txt');
   if (bar) bar.style.display = 'flex';
   var i = 0, okN = 0, failN = 0;
+
+  // 先試著一次抓完（只花 1 次額度）；只有單字、且沒抓過的才批次
+  var todo = list.filter(function(t){ return !_ttsCache[ttsVoice() + '|' + t]; });
+  var allShort = todo.length >= 2 && todo.length <= 12;
+  if (allShort) {
+    if (txt) txt.textContent = '一次下載中…（只花 1 次額度）';
+    if (fill) fill.style.width = '30%';
+    fetchHDBatch(todo).then(function(n){
+      _preBusy = false;
+      if (fill) fill.style.width = '100%';
+      if (txt) txt.textContent = '完成：' + n + ' 個字，只用了 1 次額度';
+      renderHdCache();
+      toast('這一課的發音都下載好了，只花了 1 次額度');
+    }).catch(function(e){
+      var m = String(e && e.message || e);
+      if (m.indexOf('429') >= 0) {
+        _preBusy = false; markQuotaUsedUp(TTS_MODEL);
+        if (txt) txt.textContent = '今天額度用完了';
+        toast('今天的額度用完了，明天再試');
+        return;
+      }
+      if (txt) txt.textContent = '一次下載沒成功，改成一個一個抓…';
+      step();     // 退回逐字下載
+    });
+    return;
+  }
+
   function step() {
     if (i >= list.length) {
       _preBusy = false;
