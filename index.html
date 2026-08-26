@@ -9583,6 +9583,51 @@ function renderClass() {
     });
     body.appendChild(ul);
     para('答錯不用緊張，錯的會自動排進複習，之後還會再遇到。');
+
+    // 這一課的真人發音狀態
+    var hdBox = document.createElement('div');
+    hdBox.className = 'hd-note';
+    hdBox.style.marginTop = '10px';
+    hdBox.id = 'cls-hd-box';
+    body.appendChild(hdBox);
+    (function(){
+      var ws = cState.words.map(function(w){ return w[0]; });
+      Promise.all(ws.map(function(t){ return ttsGet(ttsVoice() + '|' + t); })).then(function(rs){
+        var have = rs.filter(function(x){ return !!x; }).length;
+        hdBox.innerHTML = '';
+        if (have >= ws.length) {
+          hdBox.textContent = '🎧 這一課的真人發音已經下載好了，離線也能聽。';
+          return;
+        }
+        var t1 = document.createElement('div');
+        t1.textContent = '🎧 這一課有 ' + (ws.length - have) + ' 個字還沒有真人發音（現在會用手機內建的聲音念）。';
+        hdBox.appendChild(t1);
+        if (hasApiKey()) {
+          var b = document.createElement('button');
+          b.className = 'hd-btn';
+          b.style.marginTop = '6px';
+          b.textContent = '⬇️ 下載這課發音（只花 1 次額度）';
+          b.onclick = function(){
+            b.disabled = true; b.textContent = '下載中…';
+            fetchHDBatch(ws.filter(function(t, i){ return !rs[i]; })).then(function(n){
+              hdBox.textContent = '🎧 下載完成，這一課的 ' + n + ' 個字都有真人發音了。';
+              toast('下載完成，只花了 1 次額度');
+            }).catch(function(e){
+              b.disabled = false; b.textContent = '⬇️ 再試一次';
+              var m = String(e && e.message || e);
+              toast(m.indexOf('429') >= 0 ? '今天的額度用完了，明天再試' : '下載失敗，先用手機內建聲音上課');
+            });
+          };
+          hdBox.appendChild(b);
+        } else {
+          var t2 = document.createElement('div');
+          t2.style.marginTop = '4px';
+          t2.textContent = '想用真人發音的話，先到「進度 → 設定」填入 API Key。';
+          hdBox.appendChild(t2);
+        }
+      });
+    })();
+
     nextBtn('開始上課');
     return;
   }
