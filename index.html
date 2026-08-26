@@ -526,12 +526,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 
 /* ── WEEK CHART ── */
 .week-chart{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
-.week-bars{display:flex;align-items:flex-end;gap:6px;height:60px;margin-top:10px}
-.week-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
-.week-bar{width:100%;border-radius:4px 4px 0 0;background:var(--bg3);min-height:4px;transition:height .4s ease}
+.week-bars{display:flex;align-items:flex-end;gap:6px;height:76px;margin-top:10px;overflow:hidden}
+.week-bar-wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;height:100%;overflow:hidden}
+.week-bar{width:100%;border-radius:4px 4px 0 0;background:var(--bg3);min-height:4px;max-height:56px;flex:0 0 auto;transition:height .4s ease}
 .week-bar.active{background:var(--green)}
 .week-bar.today{background:var(--amber)}
-.week-day-lbl{font-size:9px;color:var(--t3)}
+.week-day-lbl{font-size:9px;color:var(--t3);flex:0 0 auto}
+.week-num{font-size:9px;font-weight:700;color:var(--t3);flex:0 0 auto;line-height:1}
 
 * { -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
 button { user-select: none; -webkit-user-select: none; }
@@ -1076,7 +1077,9 @@ a:hover{color:#643312}
         </div>
         <div class="voice-row" style="margin-top:-2px">
           <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="reloadVoices()">🔄 重新偵測語音</button>
+          <button class="voice-try" style="flex:0 0 auto;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="dumpVoices()">📋 清單</button>
         </div>
+        <div id="voice-dump" class="hd-note" style="max-height:200px;overflow:auto"></div>
         <div id="voice-count" style="font-size:11px;color:var(--t3);margin-bottom:12px;line-height:1.6"></div>
 
         <div style="font-size:12px;color:var(--t2);margin:10px 0 6px">真人發音（用 AI 語音，需要 API Key）</div>
@@ -5498,6 +5501,37 @@ function setVoice(id) {
   renderVoiceUI();
   speak(id ? 'This is how I sound. Nice to meet you.' : 'Using the default voice.');
 }
+// 把這台裝置回報的所有語音原樣列出來，用來判斷是系統不給還是程式沒抓到
+function dumpVoices() {
+  var box = document.getElementById('voice-dump');
+  if (!box) return;
+  var all = _loadVoices() || [];
+  box.innerHTML = '';
+  var head = document.createElement('div');
+  head.style.fontWeight = '700';
+  head.textContent = '系統回報 ' + all.length + ' 個語音（英語 ' + englishVoices().length + ' 個）';
+  box.appendChild(head);
+  if (!all.length) {
+    var t = document.createElement('div');
+    t.textContent = '一個都沒有。請先按「🔄 重新偵測語音」，或先播放任何一段朗讀。';
+    box.appendChild(t);
+    return;
+  }
+  all.filter(function(v){ return /^en/i.test(v.lang || ''); }).forEach(function(v){
+    var d = document.createElement('div');
+    d.textContent = '• ' + v.name + '　[' + v.lang + ']'
+      + (v.localService ? ' 內建' : ' 線上') + (v.default ? ' 預設' : '');
+    box.appendChild(d);
+  });
+  var other = all.length - all.filter(function(v){ return /^en/i.test(v.lang || ''); }).length;
+  if (other) {
+    var o = document.createElement('div');
+    o.style.color = 'var(--t3)';
+    o.textContent = '（另有 ' + other + ' 個非英語語音，未列出）';
+    box.appendChild(o);
+  }
+}
+
 // 手動重新偵測：在 iOS 上，使用者按一下之後語音清單才會出現
 function reloadVoices() {
   _voicesCache = null;
@@ -6849,6 +6883,7 @@ function renderWeekChart() {
   var dayNames = ['日','一','二','三','四','五','六'];
   var todayStr = dOf(today);
   wrap.innerHTML = '';
+  var counts = [];
   // Show last 7 days
   for (var i = 6; i >= 0; i--) {
     var d = new Date(today);
@@ -6856,20 +6891,34 @@ function renderWeekChart() {
     var ds = dOf(d);
     var done = days.indexOf(ds) >= 0;
     var isToday = ds === todayStr;
-    var seen = parseInt(S.g('de_seen_' + ds, 0));
-    var barHeight = done ? Math.max(20, Math.round(seen / 15 * 60)) : 4;
+    counts.push({ ds: ds, done: done, isToday: isToday,
+                  seen: parseInt(S.g('de_seen_' + ds, 0)) || 0, dow: d.getDay() });
+  }
+  // 依這七天的最大值等比例縮放，最高 56px，永遠不會撐破卡片
+  var MAXH = 56;
+  var peak = 0;
+  counts.forEach(function(c){ if (c.seen > peak) peak = c.seen; });
+  counts.forEach(function(c){
+    var h = 4;
+    if (c.seen > 0) h = Math.max(10, Math.min(MAXH, Math.round(c.seen / (peak || 1) * MAXH)));
+    else if (c.done) h = 8;
     var div = document.createElement('div');
     div.className = 'week-bar-wrap';
+    var num = document.createElement('div');
+    num.className = 'week-num';
+    num.textContent = c.seen > 0 ? c.seen : '';
     var bar = document.createElement('div');
-    bar.className = 'week-bar' + (isToday ? ' today' : (done ? ' active' : ''));
-    bar.style.height = barHeight + 'px';
+    bar.className = 'week-bar' + (c.isToday ? ' today' : (c.done ? ' active' : ''));
+    bar.style.height = h + 'px';
+    bar.title = c.ds + '　學了 ' + c.seen + ' 個字';
     var lbl = document.createElement('div');
     lbl.className = 'week-day-lbl';
-    lbl.textContent = dayNames[d.getDay()];
+    lbl.textContent = dayNames[c.dow];
+    div.appendChild(num);
     div.appendChild(bar);
     div.appendChild(lbl);
     wrap.appendChild(div);
-  }
+  });
 }
 
 // ══════════════════════════════════════════════
