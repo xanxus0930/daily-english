@@ -1099,9 +1099,15 @@ a:hover{color:#643312}
           <span id="hd-pre-txt"></span>
         </div>
         <div class="hd-note" id="hd-cache"></div>
-        <div class="voice-row" style="margin-top:6px;margin-bottom:12px">
-          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="ttsClear()">🗑 清除已存的發音</button>
+        <div class="set-row" style="margin-top:6px">
+          <label>下載過的字自動用真人發音</label>
+          <button class="set-btn green" id="hd-first-btn" onclick="setHdFirst(!hdFirst())">✓ 已開啟</button>
         </div>
+        <div class="voice-row" style="margin-top:6px">
+          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="diagnoseHD()">🔎 檢查真人發音為什麼不動</button>
+          <button class="voice-try" style="flex:0 0 auto;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="ttsClear()">🗑 清除</button>
+        </div>
+        <div class="hd-note" id="hd-diag" style="margin-bottom:12px"></div>
 
         <div style="font-size:12px;color:var(--t2);margin-bottom:6px">語速</div>
         <div class="spd-wrap">
@@ -5725,6 +5731,73 @@ function pcmToWav(bytes, rate) {
   return new Blob([buf], { type: 'audio/wav' });
 }
 
+function hdFirst() { return S.g('de_hd_first', true) !== false; }
+function setHdFirst(v) {
+  S.s('de_hd_first', !!v);
+  var el = document.getElementById('hd-first-btn');
+  if (el) el.textContent = hdFirst() ? '✓ 已開啟' : '✗ 已關閉';
+  toast(hdFirst() ? '有下載過的字會自動用真人發音' : '一律使用裝置語音');
+}
+
+// 有真人發音就用真人，沒有就用裝置語音。不會為了這個去打 API。
+function speakAuto(text, rate) {
+  if (!text) return;
+  if (!hdFirst()) { speak(text, rate); return; }
+  var key = ttsVoice() + '|' + text;
+  if (_ttsCache[key]) { try { new Audio(_ttsCache[key]).play(); return; } catch (e) {} }
+  var played = false;
+  var fallback = setTimeout(function(){ if (!played) { played = true; speak(text, rate); } }, 220);
+  ttsGet(key).then(function(blob){
+    if (played) return;
+    clearTimeout(fallback);
+    played = true;
+    if (blob) {
+      var u = URL.createObjectURL(blob);
+      _ttsCache[key] = u;
+      new Audio(u).play();
+    } else {
+      speak(text, rate);
+    }
+  }).catch(function(){
+    if (!played) { played = true; clearTimeout(fallback); speak(text, rate); }
+  });
+}
+
+// 診斷：直接告訴使用者真人發音為什麼不動
+function diagnoseHD() {
+  var box = document.getElementById('hd-diag');
+  if (!box) return;
+  var lines = [];
+  function show() { box.innerHTML = ''; lines.forEach(function(t){
+    var d = document.createElement('div'); d.textContent = t; box.appendChild(d); }); }
+  lines.push('1. API Key：' + (hasApiKey() ? '已設定 ✓' : '沒有設定 ✗ ← 真人發音需要它'));
+  lines.push('2. 瀏覽器儲存：' + (window.indexedDB ? '可用 ✓' : '不支援 ✗'));
+  var q = quotaMap();
+  lines.push('3. 今日額度：' + (q[TTS_MODEL] === ptDate() ? '已用完 ✗（明天恢復）' : '還可以用 ✓'));
+  lines.push('4. 目前聲音：' + ttsVoice());
+  lines.push('5. 正在測試連線…');
+  show();
+  if (!hasApiKey()) { lines[4] = '5. 沒有 API Key，無法測試連線'; show(); return; }
+  var t0 = Date.now();
+  fetchHD('test').then(function(url){
+    lines[4] = '5. 連線測試：成功 ✓（' + ((Date.now() - t0) / 1000).toFixed(1) + ' 秒）';
+    lines.push('6. 播放測試中…');
+    show();
+    var a = new Audio(url);
+    a.onloadedmetadata = function(){ lines[5] = '6. 播放測試：成功 ✓（音訊 ' + a.duration.toFixed(2) + ' 秒）'; show(); a.play(); };
+    a.onerror = function(){ lines[5] = '6. 播放測試：失敗 ✗ 這台裝置可能不支援 WAV 播放'; show(); };
+  }).catch(function(e){
+    var m = String(e && e.message || e);
+    lines[4] = '5. 連線測試：失敗 ✗　' + m.slice(0, 120);
+    if (m.indexOf('429') >= 0) lines.push('→ 今天的額度用完了，明天再試');
+    else if (m.indexOf('403') >= 0 || m.indexOf('401') >= 0) lines.push('→ API Key 無效或沒有權限，請重新產生一把');
+    else if (m.indexOf('404') >= 0) lines.push('→ 這把金鑰用不了語音模型');
+    else if (m.indexOf('NO_KEY') >= 0) lines.push('→ 請先填入 API Key');
+    else lines.push('→ 可能是網路問題，換個網路再試一次');
+    show();
+  });
+}
+
 function speakHD(text, btn) {
   if (!text) return;
   if (_ttsBusy) { toast('上一個還在產生中，等一下'); return; }
@@ -5956,10 +6029,10 @@ function prevW() {
   wIdx = Math.max(0, wIdx - 1);
   renderWord();
 }
-function speakWord() { speak(todayWords[wIdx % todayWords.length][0]); }
+function speakWord() { speakAuto(todayWords[wIdx % todayWords.length][0]); }
 function speakExample() {
   var w = todayWords[wIdx % todayWords.length];
-  speak(w[4].replace(/^\"|\"$/g, ''));
+  speakAuto(w[4].replace(/^\"|\"$/g, ''));
   toast('🔊 朗讀例句');
 }
 function toggleSave() {
@@ -6708,6 +6781,8 @@ function renderProg() {
   renderVoiceUI();
   renderTtsVoiceUI();
   renderHdCache();
+  var hf = document.getElementById('hd-first-btn');
+  if (hf) hf.textContent = hdFirst() ? '✓ 已開啟' : '✗ 已關閉';
   renderStageUI();
   renderPaceUI();
   renderBackupInfo();
@@ -9390,7 +9465,7 @@ function renderClass() {
     card.className = 'cls-word';
     var en = document.createElement('div'); en.className = 'en'; en.textContent = w[0];
     var spk = document.createElement('span'); spk.className = 'cls-spk'; spk.textContent = '🔊';
-    spk.onclick = function(){ speak(w[0]); };
+    spk.onclick = function(){ speakAuto(w[0]); };
     en.appendChild(spk);
     var slow = document.createElement('button');
     slow.className = 'spd-mini';
@@ -9422,7 +9497,7 @@ function renderClass() {
       cState.seen[w[0]] = 1;
       markWordSeen(w[0]);
     }
-    speak(w[0]);
+    speakAuto(w[0]);
     var hdEx = hdButton(w[4], '🎧 真人念例句');
     hdEx.style.marginTop = '8px';
     body.appendChild(hdEx);
@@ -9505,7 +9580,7 @@ function renderClass() {
     hint.textContent = '提示：' + w[3] + '（' + w[2] + '）　' + w[0].length + ' 個字母';
     var play = document.createElement('button');
     play.className = 'dt-play'; play.textContent = '🔊 再聽一次';
-    play.onclick = function(){ speak(w[0]); };
+    play.onclick = function(){ speakAuto(w[0]); };
     body.appendChild(hdButton(w[0], '🎧 真人發音'));
     body.appendChild(play);
     var sub = document.createElement('div'); sub.className = 'dt-sub';
@@ -9520,7 +9595,7 @@ function renderClass() {
     body.appendChild(inp);
     var res = document.createElement('div'); res.id = 'cls-dict-res';
     body.appendChild(res);
-    speak(w[0]);
+    speakAuto(w[0]);
     nextBtn('對答案', function(){ checkClassDictWord(st); });
     return;
   }
@@ -9533,7 +9608,7 @@ function renderClass() {
     var w2 = st.w;
     var play2 = document.createElement('button');
     play2.className = 'dt-play'; play2.textContent = '🔊 再聽一次';
-    play2.onclick = function(){ speak(st.en); };
+    play2.onclick = function(){ speakAuto(st.en); };
     body.appendChild(hdButton(st.en, '🎧 真人發音'));
     body.appendChild(play2);
     var sub2 = document.createElement('div'); sub2.className = 'dt-sub';
@@ -9553,7 +9628,7 @@ function renderClass() {
     body.appendChild(inp2);
     var res2 = document.createElement('div'); res2.id = 'cls-dict-res';
     body.appendChild(res2);
-    speak(st.en);
+    speakAuto(st.en);
     nextBtn('對答案', function(){ checkClassDictWord(st, true); });
     return;
   }
@@ -9564,7 +9639,7 @@ function renderClass() {
     head('聽一次，把整句打出來');
     var play = document.createElement('button');
     play.className = 'dt-play'; play.textContent = '🔊 播放句子';
-    play.onclick = function(){ speak(st.en); };
+    play.onclick = function(){ speakAuto(st.en); };
     body.appendChild(hdButton(st.en, '🎧 真人發音'));
     body.appendChild(play);
     var slow = document.createElement('div'); slow.className = 'dt-sub';
@@ -9578,7 +9653,7 @@ function renderClass() {
     body.appendChild(inp);
     var res = document.createElement('div'); res.id = 'cls-dict-res';
     body.appendChild(res);
-    speak(st.en);
+    speakAuto(st.en);
     nextBtn('對答案', function(){ checkClassDict(st); });
     return;
   }
