@@ -174,6 +174,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .qsave-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:var(--bg3);color:var(--t2);margin-top:8px;transition:all .15s}
 .qsave-btn.saved{border-color:var(--ab);background:var(--al);color:var(--amber)}
 
+/* ── 真人發音 ── */
+.hd-btn{background:var(--gl);border:1px solid var(--gb);color:var(--green);border-radius:99px;padding:5px 11px;font-size:11px;font-family:var(--sans);cursor:pointer;white-space:nowrap}
+.hd-btn:disabled{opacity:.5;cursor:default}
+.hd-note{font-size:11px;color:var(--t3);line-height:1.6;margin-top:6px}
+
 /* ── 課程階段 ── */
 .stage-row{display:flex;gap:6px;margin-bottom:6px}
 .stage-row button{flex:1;padding:9px 4px;border-radius:var(--r2);border:1px solid var(--border);background:var(--bg2);color:var(--t2);font-size:12px;font-family:var(--sans);cursor:pointer}
@@ -749,6 +754,7 @@ a:hover{color:#643312}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>發音
           </button>
           <button class="wbtn" onclick="speakWordSlow()" title="放慢重念">🐢 放慢</button>
+          <button class="wbtn hd-btn" id="word-hd" onclick="speakHD(document.getElementById('wword').textContent, this)">🎧 真人</button>
           <button class="wbtn" id="savebtn" onclick="toggleSave()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
             <span id="savetxt">儲存</span>
@@ -1066,6 +1072,16 @@ a:hover{color:#643312}
           <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="reloadVoices()">🔄 重新偵測語音</button>
         </div>
         <div id="voice-count" style="font-size:11px;color:var(--t3);margin-bottom:12px;line-height:1.6"></div>
+
+        <div style="font-size:12px;color:var(--t2);margin:10px 0 6px">真人發音（用 AI 語音，需要 API Key）</div>
+        <div class="voice-row">
+          <select id="tts-voice-sel" onchange="setTtsVoice(this.value)"></select>
+          <button class="voice-try" onclick="speakHD('Please confirm the shipping schedule by Friday.', this)">🎧 試聽</button>
+        </div>
+        <div class="hd-note" style="margin-bottom:12px">
+          裝置語音聽起來太機械時，按單字卡或課堂上的「🎧 真人」，會用 AI 語音重念一次，
+          聽起來接近真人。每次約要等 3 秒、會消耗 API 額度，同一個字第二次播放不用再等。
+        </div>
 
         <div style="font-size:12px;color:var(--t2);margin-bottom:6px">語速</div>
         <div class="spd-wrap">
@@ -5473,6 +5489,19 @@ function reloadVoices() {
   }, 250);
 }
 
+function renderTtsVoiceUI() {
+  var sel = document.getElementById('tts-voice-sel');
+  if (!sel) return;
+  var cur = ttsVoice();
+  sel.innerHTML = '';
+  TTS_VOICES.forEach(function(v){
+    var o = document.createElement('option');
+    o.value = v.id; o.textContent = v.name;
+    if (v.id === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
 function renderVoiceUI() {
   var sel = document.getElementById('voice-sel');
   if (!sel) return;
@@ -5502,11 +5531,110 @@ function renderVoiceUI() {
     : '還沒抓到語音清單。請按右邊的「🔄 重新偵測」，或先播放任何一段朗讀再回來。';
 }
 
+// ── 真人發音：用 Gemini 的語音模型念，蓋過裝置那些機械音 ──
+var TTS_MODEL = 'gemini-3.1-flash-tts-preview';
+var TTS_VOICES = [
+  { id:'Kore',   name:'Kore（女聲・沉穩清晰）' },
+  { id:'Puck',   name:'Puck（男聲・輕快）' },
+  { id:'Charon', name:'Charon（男聲・低沉）' },
+  { id:'Aoede',  name:'Aoede（女聲・柔和）' },
+  { id:'Leda',   name:'Leda（女聲・年輕）' }
+];
+var _ttsCache = {};      // 這次開啟期間的快取，避免重複花額度
+var _ttsBusy = false;
+
+function ttsVoice() {
+  var v = S.g('de_tts_voice', 'Kore');
+  return TTS_VOICES.filter(function(x){ return x.id === v; }).length ? v : 'Kore';
+}
+function setTtsVoice(v) { S.s('de_tts_voice', v); _ttsCache = {}; toast('真人發音已改用 ' + v); }
+
+// 把 16-bit PCM 包成瀏覽器能播的 WAV
+function pcmToWav(bytes, rate) {
+  var n = bytes.length, buf = new ArrayBuffer(44 + n), dv = new DataView(buf);
+  function str(o, t){ for (var i = 0; i < t.length; i++) dv.setUint8(o + i, t.charCodeAt(i)); }
+  str(0, 'RIFF'); dv.setUint32(4, 36 + n, true); str(8, 'WAVE');
+  str(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+  dv.setUint16(22, 1, true); dv.setUint32(24, rate, true);
+  dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  str(36, 'data'); dv.setUint32(40, n, true);
+  new Uint8Array(buf, 44).set(bytes);
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+function speakHD(text, btn) {
+  if (!text) return;
+  if (!hasApiKey()) { toast('真人發音需要先在設定頁填入 API Key'); return; }
+  if (_ttsBusy) { toast('上一個還在產生中，等一下'); return; }
+  var key = ttsVoice() + '|' + text;
+  if (_ttsCache[key]) { new Audio(_ttsCache[key]).play(); return; }
+  _ttsBusy = true;
+  var old = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '產生中…'; }
+  function done(msg) {
+    _ttsBusy = false;
+    if (btn) { btn.disabled = false; btn.textContent = old; }
+    if (msg) toast(msg);
+  }
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 25000);
+  bumpApiUsage(TTS_MODEL, 'req');
+  fetch('https://generativelanguage.googleapis.com/v1beta/models/' + TTS_MODEL + ':generateContent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(S.apiKey || '').trim() },
+    signal: ctrl ? ctrl.signal : undefined,
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: text }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ttsVoice() } } }
+      }
+    })
+  }).then(function(r){
+    clearTimeout(timer);
+    if (!r.ok) return r.text().then(function(t){ throw new Error(r.status + ' ' + t.slice(0, 120)); });
+    return r.json();
+  }).then(function(d){
+    var part = ((((d.candidates || [])[0] || {}).content || {}).parts || [])[0] || {};
+    var inl = part.inlineData || part.inline_data;
+    if (!inl || !inl.data) throw new Error('沒有取得音訊');
+    var mime = inl.mimeType || inl.mime_type || '';
+    var rate = parseInt((mime.match(/rate=(\d+)/) || [])[1] || 24000);
+    var bin = atob(inl.data), arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    var url = URL.createObjectURL(pcmToWav(arr, rate));
+    _ttsCache[key] = url;
+    bumpApiUsage(TTS_MODEL, 'ok');
+    new Audio(url).play();
+    done('');
+  }).catch(function(e){
+    clearTimeout(timer);
+    var m = String(e && e.message || e);
+    if (m.indexOf('429') >= 0) { markQuotaUsedUp(TTS_MODEL); done('今天的真人發音額度用完了，明天再試'); }
+    else { done('真人發音失敗，先用裝置語音：' + m.slice(0, 40)); speak(text); }
+  });
+}
+
+// 建一顆真人發音鈕
+function hdButton(text, label) {
+  var b = document.createElement('button');
+  b.className = 'hd-btn';
+  b.textContent = label || '🎧 真人發音';
+  b.onclick = function(e){ if (e) e.stopPropagation(); speakHD(text, b); };
+  return b;
+}
+
 function getBestVoice(lang) {
   var pick = savedVoice();
   if (pick) return pick;
   var voices = _loadVoices();
   if (!voices.length) return null;
+  // 先挑名字帶「高品質」字樣的（Enhanced / Premium / Neural / Natural / Google / Siri）
+  var GOOD = /(enhanced|premium|neural|natural|google|siri|wavenet|studio)/i;
+  var nice = voices.filter(function(v){ return v.lang === lang && GOOD.test(v.name || ''); });
+  if (nice.length) return nice[0];
+  var niceAny = voices.filter(function(v){ return /^en/i.test(v.lang || '') && GOOD.test(v.name || ''); });
+  if (niceAny.length) return niceAny[0];
   // Prefer local/default voice for the accent
   var local = voices.filter(function(v) { return v.lang === lang && v.localService; });
   if (local.length) return local[0];
@@ -6443,6 +6571,7 @@ function renderProg() {
   renderBadges();
   renderApiUsage();
   renderVoiceUI();
+  renderTtsVoiceUI();
   renderStageUI();
   renderPaceUI();
   renderBackupInfo();
@@ -9132,6 +9261,7 @@ function renderClass() {
     slow.textContent = '🐢 放慢';
     slow.onclick = function(e){ e.stopPropagation(); speakSlow(w[0]); };
     en.appendChild(slow);
+    en.appendChild(hdButton(w[0], '🎧 真人'));
     var ph = document.createElement('div'); ph.className = 'ph'; ph.textContent = w[1];
     var pos = document.createElement('div'); pos.className = 'pos'; pos.textContent = w[2];
     var zh = document.createElement('div'); zh.className = 'zh'; zh.textContent = w[3];
@@ -9157,6 +9287,9 @@ function renderClass() {
       markWordSeen(w[0]);
     }
     speak(w[0]);
+    var hdEx = hdButton(w[4], '🎧 真人念例句');
+    hdEx.style.marginTop = '8px';
+    body.appendChild(hdEx);
     var know = document.createElement('button');
     know.className = 'cls-know';
     know.textContent = '我已經會了';
@@ -9237,6 +9370,7 @@ function renderClass() {
     var play = document.createElement('button');
     play.className = 'dt-play'; play.textContent = '🔊 再聽一次';
     play.onclick = function(){ speak(w[0]); };
+    body.appendChild(hdButton(w[0], '🎧 真人發音'));
     body.appendChild(play);
     var sub = document.createElement('div'); sub.className = 'dt-sub';
     var sb = document.createElement('button'); sb.textContent = '🐢 放慢';
@@ -9264,6 +9398,7 @@ function renderClass() {
     var play2 = document.createElement('button');
     play2.className = 'dt-play'; play2.textContent = '🔊 再聽一次';
     play2.onclick = function(){ speak(st.en); };
+    body.appendChild(hdButton(st.en, '🎧 真人發音'));
     body.appendChild(play2);
     var sub2 = document.createElement('div'); sub2.className = 'dt-sub';
     var sb2 = document.createElement('button'); sb2.textContent = '🐢 放慢';
@@ -9294,6 +9429,7 @@ function renderClass() {
     var play = document.createElement('button');
     play.className = 'dt-play'; play.textContent = '🔊 播放句子';
     play.onclick = function(){ speak(st.en); };
+    body.appendChild(hdButton(st.en, '🎧 真人發音'));
     body.appendChild(play);
     var slow = document.createElement('div'); slow.className = 'dt-sub';
     var b1 = document.createElement('button'); b1.textContent = '🐢 放慢';
