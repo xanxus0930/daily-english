@@ -5490,6 +5490,27 @@ function englishVoices() {
       return a.name.localeCompare(b.name);
     });
 }
+// Apple 內建的「特效音」：會唱歌、機器人聲、耳語，完全不適合學英文
+var NOVELTY = ['albert','bad news','bahh','bells','boing','bubbles','cellos','deranged',
+               'good news','hysterical','jester','junior','kathy','organ','pipe organ',
+               'princess','ralph','superstar','trinoids','whisper','wobble','zarvox',
+               'fred','bruce','agnes','victoria','grandma','grandpa','rocko','shelley',
+               'sandy','flo','eddy','reed'];
+function isNovelty(v) {
+  var n = String((v && v.name) || '').toLowerCase().trim();
+  return NOVELTY.indexOf(n) >= 0;
+}
+// 各語系實際可用、發音正常的語音（依偏好排序）
+var REAL_VOICES = ['samantha','alex','ava','allison','susan','nicky','aaron','tom',
+                   'daniel','kate','serena','oliver','karen','lee','moira','rishi',
+                   'tessa','veena','google us english','google uk english female',
+                   'google uk english male', 'microsoft aria', 'microsoft guy'];
+function voiceRank(v) {
+  var n = String((v && v.name) || '').toLowerCase().trim();
+  var i = REAL_VOICES.indexOf(n);
+  return i < 0 ? 999 : i;
+}
+
 // iOS 把壓縮版與高音質版放在同一個名字下，差別在 voiceURI
 function voiceQuality(v) {
   var id = ((v && (v.voiceURI || '')) + ' ' + (v && v.name || '')).toLowerCase();
@@ -5590,10 +5611,14 @@ function renderVoiceUI() {
   var d = document.createElement('option');
   d.value = ''; d.textContent = list.length ? '自動挑選（預設）' : '此裝置尚未載入語音';
   sel.appendChild(d);
-  // 高音質的排前面
+  // 排序：高音質 → 已知發音正常 → 其他 → 特效音（放最後）
   list.sort(function(a, b){
+    var na = isNovelty(a) ? 1 : 0, nb = isNovelty(b) ? 1 : 0;
+    if (na !== nb) return na - nb;
     var qa = voiceQuality(a).good ? 0 : 1, qb = voiceQuality(b).good ? 0 : 1;
     if (qa !== qb) return qa - qb;
+    var ra = voiceRank(a), rb = voiceRank(b);
+    if (ra !== rb) return ra - rb;
     return (a.name || '').localeCompare(b.name || '');
   });
   list.forEach(function(v){
@@ -5601,8 +5626,10 @@ function renderVoiceUI() {
     o.value = v.voiceURI || v.name;
     var tag = /GB|UK/i.test(v.lang) ? '英式' : (/AU/i.test(v.lang) ? '澳洲' : (/IN/i.test(v.lang) ? '印度' : '美式'));
     var q = voiceQuality(v);
-    o.textContent = (q.good ? '⭐ ' : '') + v.name + '（' + tag
-                  + (q.tag ? '・' + q.tag : (v.localService ? '・裝置內建' : '・線上')) + '）';
+    var nov = isNovelty(v);
+    o.textContent = (nov ? '⚠️ ' : (q.good ? '⭐ ' : (voiceRank(v) < 999 ? '👍 ' : ''))) + v.name
+                  + '（' + tag + (nov ? '・特效音，不要選'
+                                      : (q.tag ? '・' + q.tag : (v.localService ? '・裝置內建' : '・線上'))) + '）';
     if (cur === o.value) o.selected = true;
     sel.appendChild(o);
   });
@@ -5616,13 +5643,20 @@ function renderVoiceUI() {
       var l1 = document.createElement('div');
       l1.textContent = '這台裝置有 ' + list.length + ' 個英語發音人，其中 ' + good + ' 個是高音質（標 ⭐）。';
       n.appendChild(l1);
+      var nov = list.filter(isNovelty).length;
+      if (nov) {
+        var l3 = document.createElement('div');
+        l3.style.marginTop = '4px';
+        l3.textContent = '其中 ' + nov + ' 個是 Apple 的特效音（會唱歌、機器人聲），已標上 ⚠️ 並排到最後，不要選。';
+        n.appendChild(l3);
+      }
       if (!good) {
         var l2 = document.createElement('div');
         l2.style.marginTop = '4px';
-        l2.innerHTML = '<b>目前全部都是壓縮版，聽起來機械是正常的。</b>'
-          + 'iPhone 請到「設定 → 輔助使用 → 朗讀內容 → 語音 → 英文」，'
-          + '點名字旁邊的雲朵圖示下載<b>「增強音質」或「高音質」</b>版本，回來按「🔄 重新偵測語音」。'
-          + '建議先下載 Allison（增強音質，約 38 MB）試聽，滿意再下載更大的。';
+        l2.innerHTML = '<b>iPhone 的 Safari 只開放這組固定語音給網頁，'
+          + '在「輔助使用」裡下載的「增強音質／高音質」不會出現在這裡</b>（這是 iOS 的限制，App 端無解）。'
+          + '這幾個裡面 <b>Samantha</b>（美式）與 <b>Daniel</b>（英式）發音最正常，先用它們；'
+          + '真的聽不懂就按課堂上的「🎧 真人」。';
         n.appendChild(l2);
       }
     }
@@ -6038,12 +6072,16 @@ function getBestVoice(lang) {
   if (!voices.length) return null;
   // 先挑高音質的：iOS 的差別藏在 voiceURI，不是名字
   function best(list) {
-    var prem = list.filter(function(v){ return /premium/i.test(v.voiceURI || ''); });
+    var ok = list.filter(function(v){ return !isNovelty(v); });
+    if (!ok.length) ok = list;
+    var prem = ok.filter(function(v){ return /premium/i.test(v.voiceURI || ''); });
     if (prem.length) return prem[0];
-    var good = list.filter(function(v){ return voiceQuality(v).good; });
+    var good = ok.filter(function(v){ return voiceQuality(v).good; });
     if (good.length) return good[0];
-    var named = list.filter(function(v){ return /(google|siri|wavenet|studio)/i.test(v.name || ''); });
-    return named[0] || null;
+    var known = ok.filter(function(v){ return voiceRank(v) < 999; })
+                  .sort(function(a, b){ return voiceRank(a) - voiceRank(b); });
+    if (known.length) return known[0];
+    return ok[0] || null;
   }
   var nice = best(voices.filter(function(v){ return v.lang === lang; }));
   if (nice) return nice;
