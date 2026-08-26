@@ -174,6 +174,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .qsave-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:var(--bg3);color:var(--t2);margin-top:8px;transition:all .15s}
 .qsave-btn.saved{border-color:var(--ab);background:var(--al);color:var(--amber)}
 
+/* ── AI 對話難度 ── */
+.chat-lvl{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;border-radius:var(--r2);background:var(--bg2);border:1px solid var(--border)}
+.chat-lvl .badge{flex:0 0 auto;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--gl);color:var(--green);border:1px solid var(--gb)}
+.chat-lvl .desc{flex:1;font-size:11px;color:var(--t3);line-height:1.5}
+.chat-lvl select{flex:0 0 auto;padding:4px 6px;border-radius:var(--r2);border:1px solid var(--border);background:var(--bg3);color:var(--t2);font-size:11px;font-family:var(--sans)}
+
 /* ── 課次切換與上一步 ── */
 .lesson-nav{display:flex;align-items:center;gap:8px;margin:-6px 0 12px}
 .lesson-nav button{flex:0 0 auto;padding:7px 12px;border-radius:99px;border:1px solid var(--border);background:var(--bg2);color:var(--t2);font-size:12px;font-family:var(--sans);cursor:pointer}
@@ -1038,6 +1044,7 @@ a:hover{color:#643312}
         <span class="dot"></span><span id="ai-status-txt">腳本模式（未設定 API Key）</span>
         <button class="link" onclick="gotoApiSetting()">設定</button>
       </div>
+      <div class="chat-lvl" id="chat-lvl"></div>
       <div style="margin-bottom:10px">
         <select id="scene-sel" onchange="changeScene()" style="width:100%;padding:10px 12px;border-radius:var(--r2);border:1px solid var(--border);background:var(--bg2);color:var(--text);font-family:var(--sans);font-size:13px;outline:none"></select>
       </div>
@@ -6953,6 +6960,8 @@ function curScene() {
   if (!sceneList.length) sceneList = buildSceneList();
   return sceneList[chatSceneIdx] || sceneList[0];
 }
+function refreshChatLevel() { try { renderChatLevel(); } catch (e) {} }
+
 function resetChat() {
   document.getElementById('chat-msgs').innerHTML = '';
   chatConvoIdx = 0;
@@ -7030,20 +7039,117 @@ function hideTyping() {
   var el = document.getElementById('typing-bubble');
   if (el) el.parentNode.removeChild(el);
 }
+// ── AI 對話難度：依實際完成課數自動升級，也可手動覆寫 ──
+var CHAT_TIERS = [
+  { n:1, name:'入門', need:0,
+    label:'超短句、只用最常見的字', en:'absolute beginner',
+    rule:['- The user is an absolute beginner. Use ONLY the most common 800 English words.',
+          '- Keep every reply to ONE short sentence of at most 10 words.',
+          '- Use present simple tense almost exclusively. No idioms, no phrasal verbs, no contractions beyond I\'m / it\'s / don\'t.',
+          '- Ask one very simple question at the end, such as a yes/no question.'] },
+  { n:2, name:'基礎', need:15,
+    label:'一到兩句、加入過去式與未來式', en:'beginner',
+    rule:['- The user is a beginner who has studied about a month. Use common everyday and office words.',
+          '- Keep replies to 1-2 short sentences, at most 14 words each.',
+          '- You may use past and future tenses and very common phrasal verbs (pick up, drop off, set up).',
+          '- Avoid idioms and avoid long noun phrases.'] },
+  { n:3, name:'進階', need:45,
+    label:'自然語速、開始出現多益商務用語', en:'lower-intermediate',
+    rule:['- The user is at a lower-intermediate level. Use normal spoken business English.',
+          '- Keep replies to 2-3 sentences.',
+          '- Bring in TOEIC workplace vocabulary: schedules, deadlines, invoices, shipments, staffing, complaints.',
+          '- You may use common idioms, but explain nothing; keep it natural.'] },
+  { n:4, name:'熟練', need:100,
+    label:'完整商務對話、會追問細節', en:'intermediate',
+    rule:['- The user is intermediate. Speak at natural native pace.',
+          '- Replies may run 3-4 sentences and include follow-up detail.',
+          '- Use realistic workplace idioms, indirect requests and polite hedging (Would you mind..., I was wondering if...).',
+          '- Push back or ask for clarification sometimes, the way a real colleague would.'] },
+  { n:5, name:'流利', need:180,
+    label:'不放水，接近真實職場節奏', en:'upper-intermediate',
+    rule:['- The user is upper-intermediate to advanced. Do not simplify anything.',
+          '- Speak exactly as a native professional would, including ellipsis and natural interruptions.',
+          '- Introduce nuance: negotiation, disagreement, tight deadlines, escalation.',
+          '- Only correct genuine errors, not stylistic choices.'] }
+];
+
+function autoChatTier() {
+  var done = totalDoneLessons();
+  var t = CHAT_TIERS[0];
+  CHAT_TIERS.forEach(function(x){ if (done >= x.need) t = x; });
+  // 已經在中／高級單字庫的人，至少從第 3 級起跳
+  if (lv === 'i' && t.n < 3) t = CHAT_TIERS[2];
+  if (lv === 'a' && t.n < 4) t = CHAT_TIERS[3];
+  return t;
+}
+function chatTier() {
+  var m = parseInt(S.g('de_chat_tier', 0));   // 0 = 自動
+  if (m >= 1 && m <= CHAT_TIERS.length) return CHAT_TIERS[m - 1];
+  return autoChatTier();
+}
+function setChatTier(v) {
+  S.s('de_chat_tier', parseInt(v) || 0);
+  renderChatLevel();
+  toast(parseInt(v) ? '難度固定在「' + CHAT_TIERS[parseInt(v) - 1].name + '」' : '難度改為跟著進度自動調整');
+}
+
+// 最近學過、以及正在複習的字，讓 AI 自然地用進對話裡
+function chatWordHints() {
+  var out = [], seen = {};
+  (reviewWords || []).slice(0, 8).forEach(function(w){ if (w && !seen[w[0]]) { seen[w[0]] = 1; out.push(w[0]); } });
+  (todayWords || []).forEach(function(w){ if (w && !seen[w[0]]) { seen[w[0]] = 1; out.push(w[0]); } });
+  var bank = WORDS[lv] || [], per = perLesson(), lesson = getLesson(lv);
+  bank.slice(Math.max(0, (lesson - 3) * per), (lesson - 1) * per).forEach(function(w){
+    if (w && !seen[w[0]]) { seen[w[0]] = 1; out.push(w[0]); }
+  });
+  return out.slice(0, 18);
+}
+
+function renderChatLevel() {
+  var el = document.getElementById('chat-lvl');
+  if (!el) return;
+  var t = chatTier(), manual = parseInt(S.g('de_chat_tier', 0));
+  el.innerHTML = '';
+  var b = document.createElement('span');
+  b.className = 'badge';
+  b.textContent = 'Lv' + t.n + '　' + t.name;
+  var d = document.createElement('span');
+  d.className = 'desc';
+  var done = totalDoneLessons();
+  var nxt = CHAT_TIERS.filter(function(x){ return x.need > done; })[0];
+  d.textContent = t.label + (manual ? '（已手動固定）'
+    : (nxt ? '　再上 ' + (nxt.need - done) + ' 課升到「' + nxt.name + '」' : '　已是最高難度'));
+  var sel = document.createElement('select');
+  [['0', '自動']].concat(CHAT_TIERS.map(function(x){ return [String(x.n), 'Lv' + x.n + ' ' + x.name]; }))
+    .forEach(function(o){
+      var op = document.createElement('option');
+      op.value = o[0]; op.textContent = o[1];
+      if (String(manual) === o[0]) op.selected = true;
+      sel.appendChild(op);
+    });
+  sel.onchange = function(){ setChatTier(sel.value); };
+  el.appendChild(b); el.appendChild(d); el.appendChild(sel);
+}
+
 function buildSystemPrompt(scene) {
-  var lvName = lv === 'a' ? 'advanced' : (lv === 'i' ? 'intermediate' : 'beginner');
+  var tier = chatTier();
+  var hints = chatWordHints();
   return [
     scene.sys,
     'Scene: ' + scene.name + '.',
-    'You are talking with a Taiwanese connector design engineer who is practicing spoken English (level: ' + lvName + ').',
+    'You are talking with a Taiwanese connector design engineer who is practicing spoken English.',
+    'Difficulty level: ' + tier.n + ' of 5 (' + tier.en + '). Match this level exactly:',
+    tier.rule.join('\n'),
+    hints.length ? '- When it fits naturally, work in some of these words the learner is currently studying: '
+                   + hints.join(', ') + '. Never force them and never list them.' : '',
     'Rules:',
     '- Stay fully in character and in scene. Never mention that you are an AI or a language model.',
-    '- Reply in natural, spoken English. Keep it to 1-3 short sentences, the way a real person speaks out loud.',
+    '- Reply in natural, spoken English, the way a real person speaks out loud.',
     '- Always end with a question or a hook so the conversation keeps going.',
     '- Do not lecture, do not list, do not use bullet points or emoji.',
     '- If the user writes in Chinese, answer in English and gently steer them back to English.',
-    '- This is TOEIC preparation. Use vocabulary and phrasing typical of TOEIC workplace listening: schedules, deadlines, orders, shipments, invoices, meetings, complaints, travel arrangements, staffing.',
     '- Prefer business-appropriate register over slang, but keep it natural spoken English.',
+    '- The reply length and vocabulary limits in the difficulty level above override everything else.',
     'Return ONLY a JSON object with exactly these four string fields:',
     '{"reply": "your spoken reply in English",',
     ' "zh": "Traditional Chinese translation of reply",',
@@ -7162,6 +7268,7 @@ function goScreen(s) {
   if (s === 'chat') {
     if (!chatInited) initChat();
     updateAiStatus();
+    refreshChatLevel();
   }
   if (s === 'search') {
     initSearchStats();
