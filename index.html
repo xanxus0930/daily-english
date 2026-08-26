@@ -174,6 +174,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .qsave-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer;font-family:var(--sans);border:1px solid var(--border);background:var(--bg3);color:var(--t2);margin-top:8px;transition:all .15s}
 .qsave-btn.saved{border-color:var(--ab);background:var(--al);color:var(--amber)}
 
+/* ── 發音設定 ── */
+.voice-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.voice-row select{flex:1;min-width:0;padding:8px 10px;border-radius:var(--r2);border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px;font-family:var(--sans)}
+.voice-try{flex:0 0 auto;padding:8px 12px;border-radius:var(--r2);border:1px solid var(--gb);background:var(--gl);color:var(--green);font-size:12px;font-family:var(--sans);cursor:pointer}
+.spd-wrap{display:flex;align-items:center;gap:10px}
+.spd-wrap input[type=range]{flex:1;accent-color:var(--green)}
+.spd-val{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--green);min-width:56px;text-align:right}
+.spd-quick{display:flex;gap:6px;margin-top:6px}
+.spd-quick button{flex:1;padding:6px 4px;border-radius:var(--r2);border:1px solid var(--border);background:var(--bg2);color:var(--t2);font-size:11px;font-family:var(--sans);cursor:pointer}
+.spd-quick button.on{background:var(--gl);border-color:var(--gb);color:var(--green);font-weight:700}
+.spd-mini{background:none;border:1px solid var(--border);color:var(--t3);border-radius:99px;padding:3px 9px;font-size:11px;font-family:var(--sans);cursor:pointer;margin-left:6px}
+
 /* ── AI 對話難度 ── */
 .chat-lvl{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 10px;border-radius:var(--r2);background:var(--bg2);border:1px solid var(--border)}
 .chat-lvl .badge{flex:0 0 auto;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--gl);color:var(--green);border:1px solid var(--gb)}
@@ -714,9 +726,12 @@ a:hover{color:#643312}
                 <div class="w-ex" id="wex"></div>
                 <div class="w-exzh" id="wexzh"></div>
               </div>
-              <button class="wbtn speak" style="flex-shrink:0;margin-top:2px" onclick="speakExample()" title="朗讀例句">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>例句
-              </button>
+              <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-top:2px">
+                <button class="wbtn speak" onclick="speakExample()" title="朗讀例句">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>例句
+                </button>
+                <button class="wbtn" onclick="speakExampleSlow()" title="放慢重念">🐢 放慢</button>
+              </div>
             </div>
           </div>
         </div>
@@ -724,6 +739,7 @@ a:hover{color:#643312}
           <button class="wbtn speak" onclick="speakWord()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>發音
           </button>
+          <button class="wbtn" onclick="speakWordSlow()" title="放慢重念">🐢 放慢</button>
           <button class="wbtn" id="savebtn" onclick="toggleSave()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
             <span id="savetxt">儲存</span>
@@ -1023,13 +1039,26 @@ a:hover{color:#643312}
           <button class="set-btn green" onclick="setStartDate()">設定</button>
         </div>
         <div id="start-status" style="font-size:12px;color:var(--green);margin-bottom:8px;margin-left:0"></div>
-        <div class="set-row" style="margin-top:4px">
-          <label>語速</label>
-          <div style="display:flex;gap:6px">
-            <button id="spd-slow" class="set-btn" onclick="setSpeechRate(0.6)" style="flex:1">🐢 慢</button>
-            <button id="spd-normal" class="set-btn green" onclick="setSpeechRate(0.9)" style="flex:1">🚶 正常</button>
-            <button id="spd-fast" class="set-btn" onclick="setSpeechRate(1.3)" style="flex:1">🐇 快</button>
-          </div>
+        <div style="font-size:12px;color:var(--t2);margin:10px 0 6px">發音人</div>
+        <div class="voice-row">
+          <select id="voice-sel" onchange="setVoice(this.value)"></select>
+          <button class="voice-try" onclick="speak('Hello. Could you please confirm the shipping schedule?')">🔊 試聽</button>
+        </div>
+        <div id="voice-count" style="font-size:11px;color:var(--t3);margin-bottom:12px;line-height:1.6"></div>
+
+        <div style="font-size:12px;color:var(--t2);margin-bottom:6px">語速</div>
+        <div class="spd-wrap">
+          <input type="range" id="spd-range" min="0.4" max="1.5" step="0.05" value="0.85"
+                 oninput="setSpeechRate(this.value,false)" onchange="setSpeechRate(this.value,true)">
+          <span class="spd-val" id="spd-val">0.85x　正常</span>
+        </div>
+        <div class="spd-quick">
+          <button id="spd-q6" onclick="setSpeechRate(0.6)">🐢 0.60x</button>
+          <button id="spd-q85" onclick="setSpeechRate(0.85)">🚶 0.85x</button>
+          <button id="spd-q11" onclick="setSpeechRate(1.1)">🐇 1.10x</button>
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin:6px 0 12px;line-height:1.6">
+          聽不懂就往左調。單字卡與課堂上都有「🐢 放慢」可以單獨放慢重念一次。
         </div>
         <div style="display:flex;gap:8px;margin-top:4px">
           <button class="set-btn amber" style="flex:1" onclick="resetStats()">重置紀錄</button>
@@ -5325,23 +5354,45 @@ function setAccent(a) {
   document.getElementById('acc-uk').className = a === 'uk' ? 'on' : '';
 }
 
-function setSpeechRate(r) {
+function speechRate() {
+  var r = parseFloat(S.g('de_spd', 0.85));
+  if (!(r >= 0.4 && r <= 1.5)) r = 0.85;
+  return r;
+}
+function rateLabel(r) {
+  if (r <= 0.6) return '很慢';
+  if (r <= 0.8) return '偏慢';
+  if (r <= 1.0) return '正常';
+  if (r <= 1.2) return '偏快';
+  return '很快';
+}
+function setSpeechRate(r, preview) {
+  r = Math.round(Math.max(0.4, Math.min(1.5, parseFloat(r) || 0.85)) * 100) / 100;
   S.s('de_spd', r);
-  var ids = {0.6:'spd-slow', 0.9:'spd-normal', 1.3:'spd-fast'};
-  ['spd-slow','spd-normal','spd-fast'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) { el.className = 'set-btn' + (ids[r] === id ? ' green' : ''); }
-  });
-  speak('Speed set', r);
+  initSpeechRateUI();
+  if (preview !== false) speak('This is the speed I will read at.', r);
 }
 function initSpeechRateUI() {
-  var r = parseFloat(S.g('de_spd', 0.9));
-  var ids = {0.6:'spd-slow', 0.9:'spd-normal', 1.3:'spd-fast'};
-  var activeId = ids[r] || 'spd-normal';
-  ['spd-slow','spd-normal','spd-fast'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.className = 'set-btn' + (id === activeId ? ' green' : '');
+  var r = speechRate();
+  var sl = document.getElementById('spd-range');
+  if (sl && parseFloat(sl.value) !== r) sl.value = r;
+  var v = document.getElementById('spd-val');
+  if (v) v.textContent = r.toFixed(2) + 'x　' + rateLabel(r);
+  [['spd-q6', 0.6], ['spd-q85', 0.85], ['spd-q11', 1.1]].forEach(function(x){
+    var el = document.getElementById(x[0]);
+    if (el) el.className = (Math.abs(r - x[1]) < 0.001) ? 'on' : '';
   });
+}
+// 單字卡上的快捷：一鍵放慢重念
+function speakSlow(text) { speak(text, Math.max(0.4, speechRate() - 0.25)); }
+function speakWordSlow() {
+  var el = document.getElementById('wword');
+  if (el) speakSlow(el.textContent);
+}
+function speakExampleSlow() {
+  var el = document.getElementById('wex');
+  if (!el) return;
+  speakSlow(String(el.textContent || '').replace(/^"|"$/g, ''));
 }
 // Cache voices on first load
 var _voicesCache = [];
@@ -5353,7 +5404,49 @@ function _loadVoices() {
 if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) {
   speechSynthesis.onvoiceschanged = function() { _voicesCache = speechSynthesis.getVoices(); };
 }
+// 這台裝置上可用的英語發音人
+function englishVoices() {
+  return _loadVoices().filter(function(v){ return /^en/i.test(v.lang); })
+    .sort(function(a, b){
+      if (!!b.localService !== !!a.localService) return b.localService ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+}
+function savedVoice() {
+  var id = S.g('de_voice', '');
+  if (!id) return null;
+  var hit = _loadVoices().filter(function(v){ return (v.voiceURI || v.name) === id; });
+  return hit[0] || null;
+}
+function setVoice(id) {
+  S.s('de_voice', id || '');
+  renderVoiceUI();
+  speak(id ? 'This is how I sound. Nice to meet you.' : 'Using the default voice.');
+}
+function renderVoiceUI() {
+  var sel = document.getElementById('voice-sel');
+  if (!sel) return;
+  var list = englishVoices(), cur = S.g('de_voice', '');
+  sel.innerHTML = '';
+  var d = document.createElement('option');
+  d.value = ''; d.textContent = list.length ? '自動挑選（預設）' : '此裝置尚未載入語音';
+  sel.appendChild(d);
+  list.forEach(function(v){
+    var o = document.createElement('option');
+    o.value = v.voiceURI || v.name;
+    var tag = /GB|UK/i.test(v.lang) ? '英式' : (/AU/i.test(v.lang) ? '澳洲' : (/IN/i.test(v.lang) ? '印度' : '美式'));
+    o.textContent = v.name + '（' + tag + (v.localService ? '・裝置內建' : '・線上') + '）';
+    if (cur === o.value) o.selected = true;
+    sel.appendChild(o);
+  });
+  var n = document.getElementById('voice-count');
+  if (n) n.textContent = list.length ? ('這台裝置有 ' + list.length + ' 個英語發音人，聽不清楚就換一個試試。') :
+                                        '正在載入語音清單…若一直沒有，請先點一次任何朗讀按鈕。';
+}
+
 function getBestVoice(lang) {
+  var pick = savedVoice();
+  if (pick) return pick;
   var voices = _loadVoices();
   if (!voices.length) return null;
   // Prefer local/default voice for the accent
@@ -5370,7 +5463,7 @@ function getBestVoice(lang) {
 function speak(text, rate) {
   if (!text || !window.speechSynthesis) return;
   var lang = currentAccent === 'uk' ? 'en-GB' : 'en-US';
-  var spd = (rate !== undefined && rate !== null) ? rate : parseFloat(S.g('de_spd', 0.9));
+  var spd = (rate !== undefined && rate !== null) ? rate : speechRate();
   function _doSpeak() {
     speechSynthesis.cancel();
     setTimeout(function() {
@@ -6286,6 +6379,7 @@ function renderProg() {
   checkBadges();
   renderBadges();
   renderApiUsage();
+  renderVoiceUI();
   renderPaceUI();
   renderBackupInfo();
   renderRoadmap();
@@ -8889,6 +8983,11 @@ function renderClass() {
     var spk = document.createElement('span'); spk.className = 'cls-spk'; spk.textContent = '🔊';
     spk.onclick = function(){ speak(w[0]); };
     en.appendChild(spk);
+    var slow = document.createElement('button');
+    slow.className = 'spd-mini';
+    slow.textContent = '🐢 放慢';
+    slow.onclick = function(e){ e.stopPropagation(); speakSlow(w[0]); };
+    en.appendChild(slow);
     var ph = document.createElement('div'); ph.className = 'ph'; ph.textContent = w[1];
     var pos = document.createElement('div'); pos.className = 'pos'; pos.textContent = w[2];
     var zh = document.createElement('div'); zh.className = 'zh'; zh.textContent = w[3];
