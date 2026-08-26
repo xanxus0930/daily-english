@@ -1062,6 +1062,9 @@ a:hover{color:#643312}
           <select id="voice-sel" onchange="setVoice(this.value)"></select>
           <button class="voice-try" onclick="speak('Hello. Could you please confirm the shipping schedule?')">🔊 試聽</button>
         </div>
+        <div class="voice-row" style="margin-top:-2px">
+          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="reloadVoices()">🔄 重新偵測語音</button>
+        </div>
         <div id="voice-count" style="font-size:11px;color:var(--t3);margin-bottom:12px;line-height:1.6"></div>
 
         <div style="font-size:12px;color:var(--t2);margin-bottom:6px">語速</div>
@@ -5415,16 +5418,26 @@ function speakExampleSlow() {
 // Cache voices on first load
 var _voicesCache = [];
 function _loadVoices() {
-  var v = speechSynthesis.getVoices();
-  if (v.length) _voicesCache = v;
-  return _voicesCache;
+  if (!window.speechSynthesis) return [];
+  var v = null;
+  try { v = speechSynthesis.getVoices(); } catch (e) {}
+  if (v && v.length) _voicesCache = v;
+  return _voicesCache || [];
 }
 if (window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) {
-  speechSynthesis.onvoiceschanged = function() { _voicesCache = speechSynthesis.getVoices(); };
+  var _onVoices = function() {
+    var v = null;
+    try { v = speechSynthesis.getVoices(); } catch (e) {}
+    if (v && v.length) { _voicesCache = v; try { renderVoiceUI(); } catch (e) {} }
+  };
+  if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', _onVoices);
+  else speechSynthesis.onvoiceschanged = _onVoices;
 }
 // 這台裝置上可用的英語發音人
+var _voiceRetry = 0;
 function englishVoices() {
-  return _loadVoices().filter(function(v){ return /^en/i.test(v.lang); })
+  var all = _loadVoices() || [];
+  return all.filter(function(v){ return v && /^en/i.test(v.lang || ''); })
     .sort(function(a, b){
       if (!!b.localService !== !!a.localService) return b.localService ? 1 : -1;
       return a.name.localeCompare(b.name);
@@ -5441,10 +5454,36 @@ function setVoice(id) {
   renderVoiceUI();
   speak(id ? 'This is how I sound. Nice to meet you.' : 'Using the default voice.');
 }
+// 手動重新偵測：在 iOS 上，使用者按一下之後語音清單才會出現
+function reloadVoices() {
+  _voicesCache = null;
+  try { speechSynthesis.getVoices(); } catch (e) {}
+  var u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  try { speechSynthesis.speak(u); } catch (e) {}
+  var n = 0;
+  var tick = setInterval(function(){
+    n++;
+    if (englishVoices().length || n > 12) {
+      clearInterval(tick);
+      renderVoiceUI();
+      toast(englishVoices().length ? '找到 ' + englishVoices().length + ' 個發音人'
+                                   : '這台裝置沒有回報語音清單，仍可使用預設發音');
+    }
+  }, 250);
+}
+
 function renderVoiceUI() {
   var sel = document.getElementById('voice-sel');
   if (!sel) return;
   var list = englishVoices(), cur = S.g('de_voice', '');
+  // 清單還沒好就自己再試幾次（手機常常晚幾百毫秒才給）
+  if (!list.length && _voiceRetry < 12) {
+    _voiceRetry++;
+    setTimeout(renderVoiceUI, 250);
+  } else if (list.length) {
+    _voiceRetry = 0;
+  }
   sel.innerHTML = '';
   var d = document.createElement('option');
   d.value = ''; d.textContent = list.length ? '自動挑選（預設）' : '此裝置尚未載入語音';
@@ -5458,8 +5497,9 @@ function renderVoiceUI() {
     sel.appendChild(o);
   });
   var n = document.getElementById('voice-count');
-  if (n) n.textContent = list.length ? ('這台裝置有 ' + list.length + ' 個英語發音人，聽不清楚就換一個試試。') :
-                                        '正在載入語音清單…若一直沒有，請先點一次任何朗讀按鈕。';
+  if (n) n.textContent = list.length
+    ? ('這台裝置有 ' + list.length + ' 個英語發音人，聽不清楚就換一個試試。手機上通常比電腦多很多。')
+    : '還沒抓到語音清單。請按右邊的「🔄 重新偵測」，或先播放任何一段朗讀再回來。';
 }
 
 function getBestVoice(lang) {
@@ -5498,10 +5538,15 @@ function speak(text, rate) {
   if (voices.length) {
     _doSpeak();
   } else {
-    speechSynthesis.onvoiceschanged = function() {
-      _voicesCache = speechSynthesis.getVoices();
+    var once = function() {
+      _voicesCache = speechSynthesis.getVoices() || [];
+      try { renderVoiceUI(); } catch (e) {}
+      if (speechSynthesis.removeEventListener) speechSynthesis.removeEventListener('voiceschanged', once);
       _doSpeak();
     };
+    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', once);
+    else speechSynthesis.onvoiceschanged = once;
+    setTimeout(function(){ if (_loadVoices().length) _doSpeak(); }, 400);
   }
 }
 
