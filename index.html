@@ -5451,8 +5451,39 @@ function initSpeechRateUI() {
     if (el) el.className = (Math.abs(r - x[1]) < 0.001) ? 'on' : '';
   });
 }
+// 用內建包或已下載的音檔播放，可指定速度；沒有就回傳 false
+function playStored(text, rate) {
+  var url = packUrl(text) || _ttsCache[ttsVoice() + '|' + text];
+  if (!url) return false;
+  try {
+    var a = new Audio(url);
+    if (rate) a.playbackRate = Math.max(0.5, Math.min(4, rate));
+    a.play();
+    return true;
+  } catch (e) { return false; }
+}
+
 // 單字卡上的快捷：一鍵放慢重念
-function speakSlow(text) { speak(text, Math.max(0.4, speechRate() - 0.25)); }
+function speakSlow(text) {
+  var slow = Math.max(0.4, speechRate() - 0.25);
+  // 有真人音檔就直接放慢播放，不要掉回機械音
+  if (playStored(text, Math.max(0.55, slow / 0.85))) return;
+  if (!hdFirst()) { speak(text, slow); return; }
+  var key = ttsVoice() + '|' + text;
+  var played = false;
+  var fb = setTimeout(function(){ if (!played) { played = true; speak(text, slow); } }, 220);
+  ttsGet(key).then(function(blob){
+    if (played) return;
+    clearTimeout(fb); played = true;
+    if (blob) {
+      var u = URL.createObjectURL(blob);
+      _ttsCache[key] = u;
+      var a = new Audio(u);
+      a.playbackRate = Math.max(0.55, slow / 0.85);
+      a.play();
+    } else { speak(text, slow); }
+  }).catch(function(){ if (!played) { played = true; clearTimeout(fb); speak(text, slow); } });
+}
 function speakWordSlow() {
   var el = document.getElementById('wword');
   if (el) speakSlow(el.textContent);
@@ -6005,12 +6036,9 @@ function setHdFirst(v) {
 function speakAuto(text, rate) {
   if (!text) return;
   if (!hdFirst()) { speak(text, rate); return; }
-  // 1) 內建發音包（不用金鑰、不花額度）
-  var pu = packUrl(text);
-  if (pu) { try { new Audio(pu).play(); return; } catch (e) {} }
-  // 2) 自己抓過並存起來的
+  // 1) 內建發音包或已下載的（不用金鑰、不花額度）
+  if (playStored(text)) return;
   var key = ttsVoice() + '|' + text;
-  if (_ttsCache[key]) { try { new Audio(_ttsCache[key]).play(); return; } catch (e) {} }
   var played = false;
   var fallback = setTimeout(function(){ if (!played) { played = true; speak(text, rate); } }, 220);
   ttsGet(key).then(function(blob){
