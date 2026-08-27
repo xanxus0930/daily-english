@@ -3,15 +3,28 @@
    - 圖示／字型：快取優先
    - Gemini API：一律走網路，不快取
    改版時把 CACHE 的版本號 +1，舊快取會在啟用時清掉。 */
-var CACHE = 'daily-english-v23';
+var CACHE = 'daily-english-v24';
 var ENTRY = './index.html';          // 部署入口檔名
 var CORE_REQUIRED = ['./', ENTRY];   // 缺這兩個就沒有離線可言
 var CORE_OPTIONAL = [
   './manifest.webmanifest',
   './icon-180.png',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './audio/index.json'
 ];
+
+// 內建發音包：安裝時一併抓下來，之後完全離線可用
+function cacheAudioPack(cache) {
+  return fetch('./audio/index.json', { cache: 'reload' })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(idx){
+      if (!idx) return;
+      var files = Object.keys(idx).map(function(k){ return './audio/' + idx[k]; });
+      return cacheAll(cache, files, false);
+    })
+    .catch(function(err){ console.warn('[sw] 發音包快取略過:', err && err.message); });
+}
 
 // 逐檔快取：可選檔案失敗不會讓整個安裝失敗（addAll 是全有全無）
 function cacheAll(cache, urls, required) {
@@ -31,7 +44,8 @@ self.addEventListener('install', function(e) {
     caches.open(CACHE)
       .then(function(c) {
         return cacheAll(c, CORE_REQUIRED, true)
-          .then(function() { return cacheAll(c, CORE_OPTIONAL, false); });
+          .then(function() { return cacheAll(c, CORE_OPTIONAL, false); })
+          .then(function() { return cacheAudioPack(c); });
       })
       .then(function() { return self.skipWaiting(); })
   );

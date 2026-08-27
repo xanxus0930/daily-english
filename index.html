@@ -5939,9 +5939,19 @@ function renderHdCache() {
   var el = document.getElementById('hd-cache');
   if (!el) return;
   ttsStats().then(function(st){
-    el.textContent = st.n
-      ? ('已存 ' + st.n + ' 段發音，約 ' + (st.bytes / 1048576).toFixed(1) + ' MB。這些字之後不會再消耗額度，離線也能聽。')
-      : '還沒有存下任何發音。抓過的字會永久保存，同一個字一輩子只花一次額度。';
+    el.innerHTML = '';
+    if (_packIndex) {
+      var l0 = document.createElement('div');
+      l0.innerHTML = '<b>App 已內建 ' + Object.keys(_packIndex).length
+        + ' 個字的真人發音</b>（前 20 課），不需要 API Key、不消耗額度、離線可用。';
+      el.appendChild(l0);
+    }
+    var l1 = document.createElement('div');
+    l1.style.marginTop = _packIndex ? '4px' : '0';
+    l1.textContent = st.n
+      ? ('另外自己抓過 ' + st.n + ' 段，約 ' + (st.bytes / 1048576).toFixed(1) + ' MB。')
+      : '內建以外的字，可以用下面的按鈕自己抓，抓過就永久保存。';
+    el.appendChild(l1);
   });
 }
 
@@ -5964,6 +5974,25 @@ function pcmToWav(bytes, rate) {
   return new Blob([buf], { type: 'audio/wav' });
 }
 
+// ── 內建發音包：跟 App 一起放在網站上，不需要金鑰也不消耗額度 ──
+var _packIndex = null;      // { 單字: 檔名 }
+var _packTried = false;
+function loadPack() {
+  if (_packIndex || _packTried) return Promise.resolve(_packIndex);
+  _packTried = true;
+  return fetch('./audio/index.json')
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){ _packIndex = j || null; return _packIndex; })
+    .catch(function(){ return null; });
+}
+function packUrl(text) {
+  if (!_packIndex) return null;
+  var fn = _packIndex[text];
+  return fn ? ('./audio/' + fn) : null;
+}
+// 這個字有沒有內建發音（同步版，給已載入清單後使用）
+function hasPack(text) { return !!packUrl(text); }
+
 function hdFirst() { return S.g('de_hd_first', true) !== false; }
 function setHdFirst(v) {
   S.s('de_hd_first', !!v);
@@ -5972,10 +6001,14 @@ function setHdFirst(v) {
   toast(hdFirst() ? '有下載過的字會自動用真人發音' : '一律使用裝置語音');
 }
 
-// 有真人發音就用真人，沒有就用裝置語音。不會為了這個去打 API。
+// 播放順序：內建發音包 → 自己下載過的 → 手機內建語音
 function speakAuto(text, rate) {
   if (!text) return;
   if (!hdFirst()) { speak(text, rate); return; }
+  // 1) 內建發音包（不用金鑰、不花額度）
+  var pu = packUrl(text);
+  if (pu) { try { new Audio(pu).play(); return; } catch (e) {} }
+  // 2) 自己抓過並存起來的
   var key = ttsVoice() + '|' + text;
   if (_ttsCache[key]) { try { new Audio(_ttsCache[key]).play(); return; } catch (e) {} }
   var played = false;
@@ -6033,6 +6066,8 @@ function diagnoseHD() {
 
 function speakHD(text, btn) {
   if (!text) return;
+  var pu0 = packUrl(text);
+  if (pu0) { try { new Audio(pu0).play(); return; } catch (e) {} }
   if (_ttsBusy) { toast('上一個還在產生中，等一下'); return; }
   var key = ttsVoice() + '|' + text;
   if (_ttsCache[key]) { new Audio(_ttsCache[key]).play(); return; }
@@ -8037,6 +8072,9 @@ function goScreen(s) {
 // BOOT
 // ══════════════════════════════════════════════
 setAccent(currentAccent);
+loadPack().then(function(idx){
+  if (idx) { try { renderHdCache(); } catch (e) {} }
+});
 initDaily();
 renderWord();
 renderReview();
@@ -9722,11 +9760,16 @@ function renderClass() {
     body.appendChild(hdBox);
     (function(){
       var ws = cState.words.map(function(w){ return w[0]; });
-      Promise.all(ws.map(function(t){ return ttsGet(ttsVoice() + '|' + t); })).then(function(rs){
+      Promise.all(ws.map(function(t){
+        return hasPack(t) ? Promise.resolve(true) : ttsGet(ttsVoice() + '|' + t);
+      })).then(function(rs){
         var have = rs.filter(function(x){ return !!x; }).length;
+        var packN = ws.filter(hasPack).length;
         hdBox.innerHTML = '';
         if (have >= ws.length) {
-          hdBox.textContent = '🎧 這一課的真人發音已經下載好了，離線也能聽。';
+          hdBox.textContent = packN >= ws.length
+            ? '🎧 這一課的發音已內建在 App 裡，不用網路也不用額度。'
+            : '🎧 這一課的真人發音已經下載好了，離線也能聽。';
           return;
         }
         var t1 = document.createElement('div');
