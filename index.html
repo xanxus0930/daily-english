@@ -5972,9 +5972,11 @@ function renderHdCache() {
   ttsStats().then(function(st){
     el.innerHTML = '';
     if (_packIndex) {
+      var ks = Object.keys(_packIndex);
+      var nS = ks.filter(function(k){ return /^s_/.test(_packIndex[k]); }).length;
       var l0 = document.createElement('div');
-      l0.innerHTML = '<b>App 已內建 ' + Object.keys(_packIndex).length
-        + ' 個字的真人發音</b>（前 20 課），不需要 API Key、不消耗額度、離線可用。';
+      l0.innerHTML = '<b>App 已內建 ' + (ks.length - nS) + ' 個單字、' + nS
+        + ' 句例句的真人發音</b>，不需要 API Key、不消耗額度、離線可用。';
       el.appendChild(l0);
     }
     var l1 = document.createElement('div');
