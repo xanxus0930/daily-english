@@ -3,7 +3,7 @@
    - 圖示／字型：快取優先
    - Gemini API：一律走網路，不快取
    改版時把 CACHE 的版本號 +1，舊快取會在啟用時清掉。 */
-var CACHE = 'daily-english-v28';
+var CACHE = 'daily-english-v29';
 // 發音包放在不帶版本號的快取，改版時不會被清掉、也不用重抓
 var AUDIO_CACHE = 'daily-english-audio';
 var ENTRY = './index.html';          // 部署入口檔名
