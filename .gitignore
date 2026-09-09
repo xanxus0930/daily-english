@@ -1,2 +1,4 @@
 X2/
 *.bak
+tools/raw/
+tools/qc_result.json
