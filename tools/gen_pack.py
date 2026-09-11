@@ -29,6 +29,7 @@ def call(text):
     """
     last = ''
     dayout = set()
+    bad400 = 0
     for attempt in range(40):
         avail = [i for i in range(len(KEYS)) if i not in dayout]
         if not avail:
@@ -66,9 +67,11 @@ def call(text):
                 time.sleep(min(wait, 70))
                 continue
             if code == 400:
-                # 這個 preview 模型偶爾回 400 INVALID_ARGUMENT，重送就會成功
-                time.sleep(3)
-                if attempt < 3:
+                # 這個 preview 模型偶爾回 400 INVALID_ARGUMENT，重送就會成功。
+                # 用獨立計數，才不會被「每分鐘上限」的等待次數吃掉重試機會。
+                bad400 += 1
+                if bad400 <= 4:
+                    time.sleep(5 * bad400)
                     continue
                 return None, last
             return None, last
