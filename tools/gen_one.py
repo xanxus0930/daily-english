@@ -23,7 +23,12 @@ for w in words:
                   'as a dictionary pronunciation. Say nothing else.\n' + w)
     if d is None:
         print(u'%s 失敗：%s' % (w, err))
-        if err == '429': break
+        if err == 'DAY':
+            print(u'所有金鑰今天的額度都用完了')
+            break
+        continue
+    if not (d.get('candidates') or [{}])[0].get('content'):
+        print(u'%s 回應裡沒有音訊，跳過' % w)
         continue
     a, rate = pcm_of(d)
     win = int(rate * 0.02)
