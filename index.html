@@ -864,7 +864,7 @@ a:hover{color:#643312}
           <div class="fc-back" id="fc-back" style="display:none;text-align:center">
             <div class="w-zh" id="fc-zh" style="font-size:22px;font-weight:700;margin-bottom:10px"></div>
             <div class="w-ex" id="fc-ex" style="font-size:13px;color:var(--t2);font-style:italic;text-align:left;border-left:2px solid var(--border);padding-left:10px"></div>
-            <button onclick="event.stopPropagation();speak(document.getElementById('fc-en').textContent)" style="margin-top:14px;display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:99px;background:var(--gl);border:1px solid var(--gb);color:var(--green);font-size:12px;cursor:pointer;font-family:var(--sans)">
+            <button onclick="event.stopPropagation();speakAuto(document.getElementById('fc-en').textContent)" style="margin-top:14px;display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:99px;background:var(--gl);border:1px solid var(--gb);color:var(--green);font-size:12px;cursor:pointer;font-family:var(--sans)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>聆聽發音
             </button>
             <div class="fc-hint" style="margin-top:10px">選擇記憶狀態</div>
@@ -5358,6 +5358,7 @@ function initDaily() {
   todayWords = bank.slice((lesson - 1) * per, lesson * per);
   if (!todayWords.length) todayWords = bank.slice(0, per);
   reviewWords = getDueWords(20);
+  try { prefetchLessons(); } catch (e) {}
 
   // 打卡（連續天數／日曆用，不影響課次）
   var today = dstr(0);
@@ -5451,6 +5452,12 @@ function initSpeechRateUI() {
     if (el) el.className = (Math.abs(r - x[1]) < 0.001) ? 'on' : '';
   });
 }
+// 把「裝置語音的語速」換算成音檔播放倍率。音檔本身的語速約等於 0.85。
+function packRate(rate) {
+  var r = (rate !== undefined && rate !== null) ? rate : speechRate();
+  return Math.max(0.5, Math.min(2.5, r / 0.85));
+}
+
 // 用內建包或已下載的音檔播放，可指定速度；沒有就回傳 false
 function playStored(text, rate) {
   var url = packUrl(text) || _ttsCache[ttsVoice() + '|' + text];
@@ -5458,7 +5465,10 @@ function playStored(text, rate) {
   try {
     var a = new Audio(url);
     if (rate) a.playbackRate = Math.max(0.5, Math.min(4, rate));
-    a.play();
+    // 沒預抓到的課在離線時會抓不到檔，這時要退回裝置語音，不能靜悄悄沒聲音
+    a.onerror = function(){ speak(text, rate ? rate * 0.85 : undefined); };
+    var pr = a.play();
+    if (pr && pr.catch) pr.catch(function(){});
     return true;
   } catch (e) { return false; }
 }
@@ -5976,7 +5986,8 @@ function renderHdCache() {
       var nS = ks.filter(function(k){ return /^s_/.test(_packIndex[k]); }).length;
       var l0 = document.createElement('div');
       l0.innerHTML = '<b>App 已內建 ' + (ks.length - nS) + ' 個單字、' + nS
-        + ' 句例句的真人發音</b>，不需要 API Key、不消耗額度、離線可用。';
+        + ' 句例句的真人發音</b>，不需要 API Key、不消耗額度。'
+        + '接下來幾課會自動先抓好，其他課播到時才下載，下載後就永久留在手機裡、離線也能聽。';
       el.appendChild(l0);
     }
     var l1 = document.createElement('div');
@@ -6026,6 +6037,53 @@ function packUrl(text) {
 // 這個字有沒有內建發音（同步版，給已載入清單後使用）
 function hasPack(text) { return !!packUrl(text); }
 
+// 預抓接下來幾課的發音，存進 Service Worker 用的同一個快取。
+// 其餘課程不預抓，播到的時候才下載，下載後就永久留著。
+var AUDIO_CACHE_NAME = 'daily-english-audio';
+var _prefetchedUpTo = 0;
+var PREFETCH_LESSONS = 5;
+
+function lessonTexts(level, lesson) {
+  var bank = WORDS[level] || [], per = perLesson();
+  var out = [];
+  bank.slice((lesson - 1) * per, lesson * per).forEach(function(w){
+    out.push(w[0]);
+    if (w[4]) out.push(w[4]);
+  });
+  return out;
+}
+
+function prefetchLessons() {
+  if (!_packIndex || !window.caches || !navigator.onLine) return;
+  var level = getPickedLv(), from = getLesson(level);
+  if (from <= _prefetchedUpTo) return;
+  _prefetchedUpTo = from;
+  var urls = [], seen = {};
+  for (var n = from; n < from + PREFETCH_LESSONS; n++) {
+    lessonTexts(level, n).forEach(function(t){
+      var u = packUrl(t);
+      if (u && !seen[u]) { seen[u] = 1; urls.push(u); }
+    });
+  }
+  if (!urls.length) return;
+  caches.open(AUDIO_CACHE_NAME).then(function(cache){
+    var i = 0;
+    function worker() {
+      if (i >= urls.length) return Promise.resolve();
+      var u = urls[i++];
+      return cache.match(u).then(function(hit){
+        if (hit) return;
+        return fetch(u).then(function(res){
+          if (res && res.ok) return cache.put(u, res);
+        }).catch(function(){});
+      }).then(worker);
+    }
+    var ws = [];
+    for (var k = 0; k < Math.min(3, urls.length); k++) ws.push(worker());
+    return Promise.all(ws);
+  }).catch(function(){});
+}
+
 function hdFirst() { return S.g('de_hd_first', true) !== false; }
 function setHdFirst(v) {
   S.s('de_hd_first', !!v);
@@ -6039,7 +6097,7 @@ function speakAuto(text, rate) {
   if (!text) return;
   if (!hdFirst()) { speak(text, rate); return; }
   // 1) 內建發音包或已下載的（不用金鑰、不花額度）
-  if (playStored(text)) return;
+  if (playStored(text, packRate(rate))) return;
   var key = ttsVoice() + '|' + text;
   var played = false;
   var fallback = setTimeout(function(){ if (!played) { played = true; speak(text, rate); } }, 220);
@@ -6050,7 +6108,9 @@ function speakAuto(text, rate) {
     if (blob) {
       var u = URL.createObjectURL(blob);
       _ttsCache[key] = u;
-      new Audio(u).play();
+      var au = new Audio(u);
+      au.playbackRate = packRate(rate);
+      au.play();
     } else {
       speak(text, rate);
     }
@@ -6097,7 +6157,7 @@ function diagnoseHD() {
 function speakHD(text, btn) {
   if (!text) return;
   var pu0 = packUrl(text);
-  if (pu0) { try { new Audio(pu0).play(); return; } catch (e) {} }
+  if (pu0) { try { var a0 = new Audio(pu0); a0.playbackRate = packRate(); a0.play(); return; } catch (e) {} }
   if (_ttsBusy) { toast('上一個還在產生中，等一下'); return; }
   var key = ttsVoice() + '|' + text;
   if (_ttsCache[key]) { new Audio(_ttsCache[key]).play(); return; }
@@ -6267,7 +6327,7 @@ function renderWord() {
         zhSpan.textContent = zh;
         chip.appendChild(zhSpan);
       }
-      chip.onclick = (function(e, s) { return function() { speak(e); s.className = 'en playing'; setTimeout(function(){ s.className='en'; }, 1500); }; })(en, enSpan);
+      chip.onclick = (function(e, s) { return function() { speakAuto(e); s.className = 'en playing'; setTimeout(function(){ s.className='en'; }, 1500); }; })(en, enSpan);
       phEl.appendChild(chip);
     });
   } else {
@@ -6395,7 +6455,7 @@ function renderReview() {
     var spk = document.createElement('button');
     spk.className = 'rev-btn speak';
     spk.innerHTML = '▶ 發音';
-    spk.onclick = (function(word){ return function(){ speak(word); }; })(w[0]);
+    spk.onclick = (function(word){ return function(){ speakAuto(word); }; })(w[0]);
     foot.appendChild(spk);
     var sv = document.createElement('button');
     sv.className = 'rev-btn' + (isSaved ? ' saved' : '');
@@ -6414,7 +6474,7 @@ function renderReview() {
 // ══════════════════════════════════════════════
 // PRONUNCIATION
 // ══════════════════════════════════════════════
-function pronListen() { speak(todayWords[wIdx % todayWords.length][0]); }
+function pronListen() { speakAuto(todayWords[wIdx % todayWords.length][0]); }
 function toggleRec() {
   if (!isRecording) startRec(); else stopRec();
 }
@@ -6527,7 +6587,7 @@ function renderSaved() {
     var spBtn = document.createElement('div');
     spBtn.className = 'icon-btn';
     spBtn.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>';
-    spBtn.onclick = (function(en){ return function(){ speak(en); }; })(w.en);
+    spBtn.onclick = (function(en){ return function(){ speakAuto(en); }; })(w.en);
     var rmBtn = document.createElement('div');
     rmBtn.className = 'icon-btn';
     rmBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
@@ -6649,7 +6709,7 @@ function doSearch() {
       spkBtn.className = 's-btn';
       spkBtn.style.cssText = 'color:var(--green);border-color:var(--gb);';
       spkBtn.textContent = '▶';
-      spkBtn.onclick = (function(en){ return function(){ speak(en); }; })(w[0]);
+      spkBtn.onclick = (function(en){ return function(){ speakAuto(en); }; })(w[0]);
       var svBtn = document.createElement('button');
       svBtn.className = 's-btn';
       svBtn.style.cssText = isSaved ? 'color:var(--amber);border-color:var(--ab)' : 'color:var(--t2);border-color:var(--border)';
@@ -6779,7 +6839,7 @@ function renderQuiz() {
     });
   }
   // Auto-read the word in quiz（題目本身有英文時才唸，否則會唸出答案）
-  if (q.speakQ) speak(q.w[0]);
+  if (q.speakQ) speakAuto(q.w[0]);
   if (q.type === 'fill') {
     var inp = document.getElementById('q-fill-inp');
     if (inp) inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') checkFill(); });
@@ -6843,7 +6903,7 @@ function showQFeedback(correct, q) {
     exzh.textContent = q.w[5];
     ex.appendChild(exzh);
     fb.appendChild(ex);
-    if (!q.speakQ) speak(q.w[0]);
+    if (!q.speakQ) speakAuto(q.w[0]);
   }
   if (!correct) {
     var svBtn = document.createElement('button');
@@ -8103,7 +8163,10 @@ function goScreen(s) {
 // ══════════════════════════════════════════════
 setAccent(currentAccent);
 loadPack().then(function(idx){
-  if (idx) { try { renderHdCache(); } catch (e) {} }
+  if (idx) {
+    try { renderHdCache(); } catch (e) {}
+    try { prefetchLessons(); } catch (e) {}
+  }
 });
 initDaily();
 renderWord();
@@ -9858,7 +9921,7 @@ function renderClass() {
     sec('例句', function(d){
       var e = document.createElement('div'); e.className = 'en'; e.textContent = w[4];
       var sp = document.createElement('span'); sp.className = 'cls-spk'; sp.textContent = '🔊';
-      sp.onclick = function(){ speak(w[4], 0.85); };
+      sp.onclick = function(){ speakAuto(w[4], 0.85); };
       e.appendChild(sp);
       var z = document.createElement('div'); z.className = 'zh'; z.textContent = w[5];
       d.appendChild(e); d.appendChild(z);
@@ -9905,7 +9968,7 @@ function renderClass() {
       sec('例句', function(d){
         var en2 = document.createElement('div'); en2.className = 'en'; en2.textContent = e.en;
         var sp = document.createElement('span'); sp.className = 'cls-spk'; sp.textContent = '🔊';
-        sp.onclick = function(){ speak(e.en, 0.85); };
+        sp.onclick = function(){ speakAuto(e.en, 0.85); };
         en2.appendChild(sp);
         var z = document.createElement('div'); z.className = 'zh'; z.textContent = e.zh;
         d.appendChild(en2); d.appendChild(z);
@@ -10328,7 +10391,7 @@ function renderDictation() {
 function playDict(rate) {
   if (!dState) return;
   var it = dState.items[dState.idx];
-  if (it) speak(it.en, rate);
+  if (it) speakAuto(it.en, rate);
 }
 
 function checkDictation() {
@@ -10564,7 +10627,7 @@ function renderGram() {
   L.examples.forEach(function(e){
     var d = document.createElement('div'); d.className = 'gm-ex';
     var spk = document.createElement('span'); spk.className = 'spk'; spk.textContent = '🔊';
-    spk.onclick = (function(txt){ return function(){ speak(txt, 0.85); }; })(e.en);
+    spk.onclick = (function(txt){ return function(){ speakAuto(txt, 0.85); }; })(e.en);
     var en = document.createElement('div'); en.className = 'en'; en.textContent = e.en;
     en.appendChild(spk);
     var zh = document.createElement('div'); zh.className = 'zh'; zh.textContent = e.zh;
