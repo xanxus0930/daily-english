@@ -69,8 +69,9 @@ def call(text):
             if code == 400:
                 # 這個 preview 模型偶爾回 400 INVALID_ARGUMENT，重送就會成功。
                 # 用獨立計數，才不會被「每分鐘上限」的等待次數吃掉重試機會。
+                # 每次重試都算一次額度，所以只重試 2 次就放棄，不值得為一個批次燒掉一天的量
                 bad400 += 1
-                if bad400 <= 4:
+                if bad400 <= 2:
                     time.sleep(5 * bad400)
                     continue
                 return None, last
