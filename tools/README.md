@@ -46,6 +46,14 @@ python -u tools/bench_split.py  # 新舊切割演算法的合成測試比較
 
 16 kHz、8-bit µ-law WAV（`fmt` 格式碼 7）。API 回傳 24 kHz 16-bit PCM，降取樣後編碼，約為原本的 1/3 大小。`audio/index.json` 是「文字 → 檔名」的對照表：單字用字本身當檔名，例句用 `s_<md5前12碼>.wav`。
 
+## 已知會失敗的字
+
+`pause` 這個字，API 會回 HTTP 200 但 `candidates` 是空的（沒有音訊）。試過三種提示詞、
+單獨念與夾在其他字中間，結果一樣。推測是模型把它當成指令。目前讓它退回裝置語音。
+
+`model / motivation / note / obstacle / organize` 放在同一批時，模型固定只念 4 個字。
+這種情況改用 `gen_one.py` 一次一字。
+
 ## 提示詞注意事項
 
 指令要寫明「不要演、不要加音效」。曾經發生 `laugh` 被念成笑聲（1.90 秒、7 次重複脈衝）而不是念這個字。
