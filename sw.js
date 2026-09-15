@@ -3,7 +3,7 @@
    - 圖示／字型：快取優先
    - Gemini API：一律走網路，不快取
    改版時把 CACHE 的版本號 +1，舊快取會在啟用時清掉。 */
-var CACHE = 'daily-english-v37';
+var CACHE = 'daily-english-v38';
 // 發音包放在不帶版本號的快取，改版時不會被清掉、也不用重抓
 var AUDIO_CACHE = 'daily-english-audio';
 var ENTRY = './index.html';          // 部署入口檔名
@@ -51,6 +51,11 @@ self.addEventListener('activate', function(e) {
       return Promise.all(keys.map(function(k) {
         return (k === CACHE || k === AUDIO_CACHE) ? null : caches.delete(k);
       }));
+    }).then(function() {
+      // 舊版本可能把 index.json 存進了永久快取，會導致之後新增的發音一直讀不到
+      return caches.open(AUDIO_CACHE).then(function(c) {
+        return c.delete('./audio/index.json');
+      }).catch(function(){});
     }).then(function() { return self.clients.claim(); })
   );
 });
@@ -64,6 +69,23 @@ self.addEventListener('fetch', function(e) {
 
   // Gemini（generativelanguage.googleapis.com）等 API 不攔截
   if (url.hostname.indexOf('googleapis.com') > -1 && url.hostname.indexOf('fonts') < 0) return;
+
+  // 發音清單：先用快取的（開啟快），同時背景更新，下次開啟就看得到新增的發音
+  if (url.pathname.indexOf('/audio/index.json') > -1) {
+    e.respondWith(
+      caches.open(CACHE).then(function(c) {
+        var net = fetch(req).then(function(res) {
+          if (res && res.ok) c.put(req, res.clone());
+          return res;
+        }).catch(function() { return null; });
+        e.waitUntil(net);
+        return c.match(req).then(function(hit) {
+          return hit || net.then(function(r) { return r || new Response('{}', { headers: { 'Content-Type': 'application/json' } }); });
+        });
+      })
+    );
+    return;
+  }
 
   var isHTML = req.mode === 'navigate' ||
                (req.headers.get('accept') || '').indexOf('text/html') > -1;
@@ -89,7 +111,8 @@ self.addEventListener('fetch', function(e) {
   e.respondWith(
     caches.match(req).then(function(hit) {
       if (hit) return hit;
-      var isAudio = url.pathname.indexOf('/audio/') > -1;
+      var isAudio = url.pathname.indexOf('/audio/') > -1 &&
+                    url.pathname.indexOf('index.json') < 0;
       return fetch(req).then(function(res) {
         if (res && (res.ok || res.type === 'opaque')) {
           var copy = res.clone();

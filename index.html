@@ -5476,9 +5476,9 @@ function playStored(text, rate) {
 // 單字卡上的快捷：一鍵放慢重念
 function speakSlow(text) {
   var slow = Math.max(0.4, speechRate() - 0.25);
+  if (!hdFirst()) { speak(text, slow); return; }
   // 有真人音檔就直接放慢播放，不要掉回機械音
   if (playStored(text, Math.max(0.55, slow / 0.85))) return;
-  if (!hdFirst()) { speak(text, slow); return; }
   var key = ttsVoice() + '|' + text;
   var played = false;
   var fb = setTimeout(function(){ if (!played) { played = true; speak(text, slow); } }, 220);
@@ -6040,7 +6040,7 @@ function hasPack(text) { return !!packUrl(text); }
 // 預抓接下來幾課的發音，存進 Service Worker 用的同一個快取。
 // 其餘課程不預抓，播到的時候才下載，下載後就永久留著。
 var AUDIO_CACHE_NAME = 'daily-english-audio';
-var _prefetchedUpTo = 0;
+var _prefetchedUpTo = {};
 var PREFETCH_LESSONS = 5;
 
 function lessonTexts(level, lesson) {
@@ -6056,8 +6056,8 @@ function lessonTexts(level, lesson) {
 function prefetchLessons() {
   if (!_packIndex || !window.caches || !navigator.onLine) return;
   var level = getPickedLv(), from = getLesson(level);
-  if (from <= _prefetchedUpTo) return;
-  _prefetchedUpTo = from;
+  if (from <= (_prefetchedUpTo[level] || 0)) return;
+  _prefetchedUpTo[level] = from;
   var urls = [], seen = {};
   for (var n = from; n < from + PREFETCH_LESSONS; n++) {
     lessonTexts(level, n).forEach(function(t){
