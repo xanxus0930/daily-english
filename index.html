@@ -6011,7 +6011,7 @@ var _packTried = false;
 function loadPack() {
   if (_packIndex || _packTried) return Promise.resolve(_packIndex);
   _packTried = true;
-  return fetch('./audio/index.json')
+  return fetch('./audio/index.json', { cache: 'no-cache' })
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(j){ _packIndex = j || null; return _packIndex; })
     .catch(function(){ return null; });

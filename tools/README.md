@@ -1,5 +1,17 @@
 # 發音包產生與檢查工具
 
+> **目前使用：`gen_edge.py`（Microsoft Edge 神經語音，en-US-JennyNeural）**
+> 沒有每日額度、一次只念一個項目不用切割。全部 7926 筆約 20 分鐘。
+>
+> ```
+> python -u tools/gen_edge.py --concurrency 6
+> ```
+>
+> 已經產過的會跳過；新增單字後重跑即可。需要 `pip install edge-tts`。
+> 這是走 Edge 瀏覽器朗讀服務的非官方用法，只在電腦上產檔，App 本身不依賴它。
+>
+> 以下 Gemini 版工具保留作為備援。
+
 `audio/` 裡的內建發音包是用這些腳本產生的。App 本身不需要它們。
 
 需要 Python 3（無第三方套件）與一把 Gemini API Key。**金鑰一律從命令列傳入，不要寫進檔案。**

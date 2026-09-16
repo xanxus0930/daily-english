@@ -3,7 +3,7 @@
    - 圖示／字型：快取優先
    - Gemini API：一律走網路，不快取
    改版時把 CACHE 的版本號 +1，舊快取會在啟用時清掉。 */
-var CACHE = 'daily-english-v40';
+var CACHE = 'daily-english-v41';
 // 發音包放在不帶版本號的快取，改版時不會被清掉、也不用重抓
 var AUDIO_CACHE = 'daily-english-audio';
 var ENTRY = './index.html';          // 部署入口檔名
@@ -52,9 +52,15 @@ self.addEventListener('activate', function(e) {
         return (k === CACHE || k === AUDIO_CACHE) ? null : caches.delete(k);
       }));
     }).then(function() {
-      // 舊版本可能把 index.json 存進了永久快取，會導致之後新增的發音一直讀不到
+      // 舊版本可能把 index.json 存進了永久快取，會導致之後新增的發音一直讀不到；
+      // 發音包已全面改成 .mp3，手機裡留著的舊 .wav 都用不到了，一併刪掉釋放空間
       return caches.open(AUDIO_CACHE).then(function(c) {
-        return c.delete('./audio/index.json');
+        return c.keys().then(function(reqs) {
+          return Promise.all(reqs.map(function(r) {
+            var u = r.url || '';
+            if (/\/audio\/index\.json/.test(u) || /\.wav(\?|$)/.test(u)) return c.delete(r);
+          }));
+        });
       }).catch(function(){});
     }).then(function() { return self.clients.claim(); })
   );
@@ -70,17 +76,18 @@ self.addEventListener('fetch', function(e) {
   // Gemini（generativelanguage.googleapis.com）等 API 不攔截
   if (url.hostname.indexOf('googleapis.com') > -1 && url.hostname.indexOf('fonts') < 0) return;
 
-  // 發音清單：先用快取的（開啟快），同時背景更新，下次開啟就看得到新增的發音
+  // 發音清單：有網路一律拿最新的（沒變動時伺服器回 304，幾乎不花流量），離線才用快取。
+  // 不能先給舊的：音檔改過檔名時（例如 .wav → .mp3），舊清單會指向已經刪掉的檔案而沒聲音
   if (url.pathname.indexOf('/audio/index.json') > -1) {
     e.respondWith(
       caches.open(CACHE).then(function(c) {
-        var net = fetch(req).then(function(res) {
+        return fetch(req, { cache: 'no-cache' }).then(function(res) {
           if (res && res.ok) c.put(req, res.clone());
           return res;
-        }).catch(function() { return null; });
-        e.waitUntil(net);
-        return c.match(req).then(function(hit) {
-          return hit || net.then(function(r) { return r || new Response('{}', { headers: { 'Content-Type': 'application/json' } }); });
+        }).catch(function() {
+          return c.match(req).then(function(hit) {
+            return hit || new Response('{}', { headers: { 'Content-Type': 'application/json' } });
+          });
         });
       })
     );
