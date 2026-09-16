@@ -5479,20 +5479,7 @@ function speakSlow(text) {
   if (!hdFirst()) { speak(text, slow); return; }
   // 有真人音檔就直接放慢播放，不要掉回機械音
   if (playStored(text, Math.max(0.55, slow / 0.85))) return;
-  var key = ttsVoice() + '|' + text;
-  var played = false;
-  var fb = setTimeout(function(){ if (!played) { played = true; speak(text, slow); } }, 220);
-  ttsGet(key).then(function(blob){
-    if (played) return;
-    clearTimeout(fb); played = true;
-    if (blob) {
-      var u = URL.createObjectURL(blob);
-      _ttsCache[key] = u;
-      var a = new Audio(u);
-      a.playbackRate = Math.max(0.55, slow / 0.85);
-      a.play();
-    } else { speak(text, slow); }
-  }).catch(function(){ if (!played) { played = true; clearTimeout(fb); speak(text, slow); } });
+  speak(text, slow);
 }
 function speakWordSlow() {
   var el = document.getElementById('wword');
@@ -6084,6 +6071,37 @@ function prefetchLessons() {
   }).catch(function(){});
 }
 
+// 把 IndexedDB 裡自己下載過的發音載入記憶體（_ttsCache），點擊時才能同步播放
+function warmTtsCache() {
+  return ttsDB().then(function(db){
+    return new Promise(function(res){
+      var cur = db.transaction('audio').objectStore('audio').openCursor();
+      var n = 0;
+      cur.onsuccess = function(e){
+        var c = e.target.result;
+        if (!c) { res(n); return; }
+        if (c.value && !_ttsCache[c.key]) { _ttsCache[c.key] = URL.createObjectURL(c.value); n++; }
+        c.continue();
+      };
+      cur.onerror = function(){ res(n); };
+    });
+  }).catch(function(){ return 0; });
+}
+
+// iPhone：第一次點畫面時先「解鎖」語音，之後程式自動念（例如 AI 回覆、換題）才不會被擋
+var _speechUnlocked = false;
+function unlockSpeech() {
+  if (_speechUnlocked || !window.speechSynthesis) return;
+  _speechUnlocked = true;
+  try {
+    var u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+document.addEventListener('touchend', unlockSpeech, { once: true, passive: true });
+document.addEventListener('click', unlockSpeech, { once: true });
+
 function hdFirst() { return S.g('de_hd_first', true) !== false; }
 function setHdFirst(v) {
   S.s('de_hd_first', !!v);
@@ -6096,27 +6114,10 @@ function setHdFirst(v) {
 function speakAuto(text, rate) {
   if (!text) return;
   if (!hdFirst()) { speak(text, rate); return; }
-  // 1) 內建發音包或已下載的（不用金鑰、不花額度）
+  // 內建發音包，或自己下載過的（開 App 時已經先載入記憶體，這裡可以同步查）
   if (playStored(text, packRate(rate))) return;
-  var key = ttsVoice() + '|' + text;
-  var played = false;
-  var fallback = setTimeout(function(){ if (!played) { played = true; speak(text, rate); } }, 220);
-  ttsGet(key).then(function(blob){
-    if (played) return;
-    clearTimeout(fallback);
-    played = true;
-    if (blob) {
-      var u = URL.createObjectURL(blob);
-      _ttsCache[key] = u;
-      var au = new Audio(u);
-      au.playbackRate = packRate(rate);
-      au.play();
-    } else {
-      speak(text, rate);
-    }
-  }).catch(function(){
-    if (!played) { played = true; clearTimeout(fallback); speak(text, rate); }
-  });
+  // 都沒有就立刻用裝置語音。不能先去查資料庫再念，iPhone 會因為「不是點擊當下」而擋掉
+  speak(text, rate);
 }
 
 // 診斷：直接告訴使用者真人發音為什麼不動
@@ -6160,7 +6161,15 @@ function speakHD(text, btn) {
   if (pu0) { try { var a0 = new Audio(pu0); a0.playbackRate = packRate(); a0.play(); return; } catch (e) {} }
   if (_ttsBusy) { toast('上一個還在產生中，等一下'); return; }
   var key = ttsVoice() + '|' + text;
-  if (_ttsCache[key]) { new Audio(_ttsCache[key]).play(); return; }
+  if (_ttsCache[key]) { var ac = new Audio(_ttsCache[key]); ac.playbackRate = packRate(); ac.play(); return; }
+  // 沒有 API Key 就沒辦法產生真人發音，但按了喇叭一定要有聲音：先用裝置語音念
+  if (!hasApiKey()) {
+    speak(text);
+    toast('這個字還沒有真人發音，先用手機的聲音念');
+    return;
+  }
+  // 有 Key：先用裝置語音念一次（保證按下去有聲音），同時在背景下載，下次就是真人發音
+  speak(text);
   _ttsBusy = true;
   var old = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '產生中…'; }
@@ -6170,14 +6179,12 @@ function speakHD(text, btn) {
     if (msg) toast(msg);
   }
   fetchHD(text).then(function(url){
-    new Audio(url).play();
     renderHdCache();
-    done('');
+    done('真人發音下載好了，再按一次就能聽');
   }).catch(function(e){
     var m = String(e && e.message || e);
-    if (m.indexOf('NO_KEY') >= 0) { done('真人發音需要先在設定頁填入 API Key'); return; }
     if (m.indexOf('429') >= 0) { markQuotaUsedUp(TTS_MODEL); done('今天的真人發音額度用完了，明天再試'); }
-    else { done('真人發音失敗，先用裝置語音'); speak(text); }
+    else { done('真人發音下載失敗，先用手機的聲音'); }
   });
 }
 
@@ -6227,32 +6234,17 @@ function speak(text, rate) {
   if (!text || !window.speechSynthesis) return;
   var lang = currentAccent === 'uk' ? 'en-GB' : 'en-US';
   var spd = (rate !== undefined && rate !== null) ? rate : speechRate();
-  function _doSpeak() {
-    speechSynthesis.cancel();
-    setTimeout(function() {
-      var utt = new SpeechSynthesisUtterance(text);
-      utt.lang = lang;
-      utt.rate = spd;
-      var v = getBestVoice(lang);
-      if (v) utt.voice = v;
-      utt.onerror = function(e) { console.warn('TTS error:', e.error); };
-      speechSynthesis.speak(utt);
-    }, 50);
-  }
-  var voices = _loadVoices();
-  if (voices.length) {
-    _doSpeak();
-  } else {
-    var once = function() {
-      _voicesCache = speechSynthesis.getVoices() || [];
-      try { renderVoiceUI(); } catch (e) {}
-      if (speechSynthesis.removeEventListener) speechSynthesis.removeEventListener('voiceschanged', once);
-      _doSpeak();
-    };
-    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', once);
-    else speechSynthesis.onvoiceschanged = once;
-    setTimeout(function(){ if (_loadVoices().length) _doSpeak(); }, 400);
-  }
+  // iPhone 只允許在點擊的當下開始念，所以一律同步呼叫，不能 setTimeout 或等 voiceschanged。
+  // 語音清單還沒載入時就先用系統預設聲音念，清單載入後下一次會自動挑最好的聲音。
+  // 只有正在念的時候才中斷。沒在念時呼叫 cancel 再立刻 speak，某些 iOS 版本會把新的這句吞掉
+  try { if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel(); } catch (e) {}
+  var utt = new SpeechSynthesisUtterance(text);
+  utt.lang = lang;
+  utt.rate = spd;
+  var v = _loadVoices().length ? getBestVoice(lang) : null;
+  if (v) utt.voice = v;
+  utt.onerror = function(e) { console.warn('TTS error:', e.error); };
+  speechSynthesis.speak(utt);
 }
 
 // ══════════════════════════════════════════════
@@ -6608,7 +6600,24 @@ function toggleFlashcard() {
 }
 function renderFC() {
   var deck = fcDeck;
-  if (!deck.length) { document.getElementById('fc-card').innerHTML = '<div class="empty-msg">單字本是空的</div>'; return; }
+  // 單字本是空的：只隱藏卡片內容並顯示提示。
+  // 不能直接覆寫 fc-card 的 innerHTML，否則裡面的單字欄位與「聆聽發音」按鈕會被刪掉，
+  // 之後加了單字再開閃卡就會出錯、整張卡片不見。
+  var empty = document.getElementById('fc-empty');
+  if (!deck.length) {
+    if (!empty) {
+      empty = document.createElement('div');
+      empty.id = 'fc-empty'; empty.className = 'empty-msg'; empty.textContent = '單字本是空的';
+      document.getElementById('fc-card').appendChild(empty);
+    }
+    empty.style.display = '';
+    document.getElementById('fc-front').style.display = 'none';
+    document.getElementById('fc-back').style.display = 'none';
+    document.getElementById('fc-btns').style.display = 'none';
+    document.getElementById('fc-progress').textContent = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
   var w = deck[fcIdx % deck.length];
   document.getElementById('fc-en').textContent = w.en;
   document.getElementById('fc-ph').textContent = w.ph;
@@ -8168,6 +8177,7 @@ loadPack().then(function(idx){
     try { prefetchLessons(); } catch (e) {}
   }
 });
+warmTtsCache();
 initDaily();
 renderWord();
 renderReview();
