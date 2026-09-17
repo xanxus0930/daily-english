@@ -5464,7 +5464,9 @@ function playStored(text, rate) {
   if (!url) return false;
   try {
     var a = new Audio(url);
-    if (rate) a.playbackRate = Math.max(0.5, Math.min(4, rate));
+    // 同時設 defaultPlaybackRate：規格上音檔開始載入時 playbackRate 會被重設成它，
+    // Safari 會照這個規則把速度改回 1，「🐢 放慢」在 iPhone 上就不會變慢
+    if (rate) a.defaultPlaybackRate = a.playbackRate = Math.max(0.5, Math.min(4, rate));
     // 沒預抓到的課在離線時會抓不到檔，這時要退回裝置語音，不能靜悄悄沒聲音
     a.onerror = function(){ speak(text, rate ? rate * 0.85 : undefined); };
     var pr = a.play();
@@ -6158,10 +6160,10 @@ function diagnoseHD() {
 function speakHD(text, btn) {
   if (!text) return;
   var pu0 = packUrl(text);
-  if (pu0) { try { var a0 = new Audio(pu0); a0.playbackRate = packRate(); a0.play(); return; } catch (e) {} }
+  if (pu0) { try { var a0 = new Audio(pu0); a0.defaultPlaybackRate = a0.playbackRate = packRate(); a0.play(); return; } catch (e) {} }
   if (_ttsBusy) { toast('上一個還在產生中，等一下'); return; }
   var key = ttsVoice() + '|' + text;
-  if (_ttsCache[key]) { var ac = new Audio(_ttsCache[key]); ac.playbackRate = packRate(); ac.play(); return; }
+  if (_ttsCache[key]) { var ac = new Audio(_ttsCache[key]); ac.defaultPlaybackRate = ac.playbackRate = packRate(); ac.play(); return; }
   // 沒有 API Key 就沒辦法產生真人發音，但按了喇叭一定要有聲音：先用裝置語音念
   if (!hasApiKey()) {
     speak(text);
