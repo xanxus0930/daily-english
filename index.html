@@ -761,7 +761,6 @@ a:hover{color:#643312}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>發音
           </button>
           <button class="wbtn" onclick="speakWordSlow()" title="放慢重念">🐢 放慢</button>
-          <button class="wbtn hd-btn" id="word-hd" onclick="speakHD(document.getElementById('wword').textContent, this)">🎧 真人</button>
           <button class="wbtn" id="savebtn" onclick="toggleSave()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
             <span id="savetxt">儲存</span>
@@ -5990,12 +5989,27 @@ function renderHdCache() {
     el.innerHTML = '';
     if (_packIndex) {
       var ks = Object.keys(_packIndex);
-      var nS = ks.filter(function(k){ return /^s_/.test(_packIndex[k]); }).length;
+      var nW = ks.filter(function(k){ return !/^s_/.test(_packIndex[k]); }).length;
+      var nEx = 0;
+      try {
+        ['b', 'i', 'a'].forEach(function(lv){
+          (WORDS[lv] || []).forEach(function(w){ if (w[4] && _packIndex[w[4]]) nEx++; });
+        });
+      } catch (e) {}
+      var nOther = ks.length - nW - nEx;
       var l0 = document.createElement('div');
-      l0.innerHTML = '<b>App 已內建 ' + (ks.length - nS) + ' 個單字、' + nS
-        + ' 句例句的真人發音</b>，不需要 API Key、不消耗額度。'
+      l0.innerHTML = '<b>App 已內建 ' + nW + ' 個單字、' + nEx + ' 句例句</b>'
+        + (nOther > 0 ? '，另有 ' + nOther + ' 句文法與多益題目' : '')
+        + '，全部都是真人發音，不需要 API Key。'
         + '接下來幾課會自動先抓好，其他課播到時才下載，下載後就永久留在手機裡、離線也能聽。';
       el.appendChild(l0);
+      if (_speechWorks === false) {
+        var l2 = document.createElement('div');
+        l2.style.marginTop = '4px';
+        l2.textContent = '⚠️ 偵測到這支手機的內建語音沒有反應，課程內容已全部改用上面的內建發音。'
+          + '只有 AI 對話因為是當場產生的句子，沒辦法預先錄，會沒有聲音。';
+        el.appendChild(l2);
+      }
     }
     var l1 = document.createElement('div');
     l1.style.marginTop = _packIndex ? '4px' : '0';
@@ -6122,12 +6136,20 @@ function unlockSpeech() {
 document.addEventListener('touchend', unlockSpeech, { once: true, passive: true });
 document.addEventListener('click', unlockSpeech, { once: true });
 
-function hdFirst() { return S.g('de_hd_first', true) !== false; }
+// 手機語音壞掉時，就算使用者把開關關掉也一律用內建發音，否則會完全沒聲音
+function hdFirst() {
+  if (_speechWorks === false) return true;
+  return S.g('de_hd_first', true) !== false;
+}
 function setHdFirst(v) {
+  if (_speechWorks === false && !v) {
+    toast('你的手機語音沒有反應，關掉會完全沒聲音，所以維持開啟');
+    return;
+  }
   S.s('de_hd_first', !!v);
   var el = document.getElementById('hd-first-btn');
   if (el) el.textContent = hdFirst() ? '✓ 已開啟' : '✗ 已關閉';
-  toast(hdFirst() ? '有下載過的字會自動用真人發音' : '一律使用裝置語音');
+  toast(hdFirst() ? '課程內容優先用內建發音' : '一律使用手機語音');
 }
 
 // 播放順序：內建發音包 → 自己下載過的 → 手機內建語音
@@ -6208,14 +6230,6 @@ function speakHD(text, btn) {
   });
 }
 
-// 建一顆真人發音鈕
-function hdButton(text, label) {
-  var b = document.createElement('button');
-  b.className = 'hd-btn';
-  b.textContent = label || '🎧 真人發音';
-  b.onclick = function(e){ if (e) e.stopPropagation(); speakHD(text, b); };
-  return b;
-}
 
 function getBestVoice(lang) {
   var pick = savedVoice();
@@ -6250,8 +6264,17 @@ function getBestVoice(lang) {
   var eng = voices.filter(function(v) { return v.lang.startsWith('en'); });
   return eng[0] || voices[0] || null;
 }
-var _speechWorks = null;   // null=還不知道 true=可用 false=不可用
+// null = 還不知道，true = 這台手機的語音可用，false = 呼叫了卻不發聲
+var _speechWorks = (function(){ var v = S.g('de_speech_ok', null); return v === false ? false : null; })();
 var _speechWarned = false;
+function markSpeechBroken() {
+  if (_speechWorks === false) return;
+  _speechWorks = false;
+  S.s('de_speech_ok', false);
+  try { renderHdCache(); } catch (e) {}
+  var el = document.getElementById('hd-first-btn');
+  if (el) el.textContent = '✓ 已開啟';
+}
 function speak(text, rate) {
   if (!text || !window.speechSynthesis) return;
   var lang = currentAccent === 'uk' ? 'en-GB' : 'en-US';
@@ -6273,9 +6296,12 @@ function speak(text, rate) {
   speechSynthesis.speak(utt);
   if (_speechWorks !== true) {
     setTimeout(function(){
-      if (!started && _speechWorks !== true && !_speechWarned) {
-        _speechWarned = true;
-        toast('這句還沒有內建發音，而你的手機語音沒有反應');
+      if (!started && _speechWorks !== true) {
+        markSpeechBroken();
+        if (!_speechWarned) {
+          _speechWarned = true;
+          toast('你的手機語音沒有反應，課程內容已全部改用內建發音');
+        }
       }
     }, 1500);
   }
@@ -7921,7 +7947,10 @@ function appendMsg(text, zh, who, extra) {
   if (who === 'ai') {
     var spk = document.createElement('span');
     spk.className = 'spk'; spk.textContent = '🔊';
-    spk.onclick = function(){ speak(text, 0.85); };
+    spk.onclick = function(){
+      if (_speechWorks === false) { toast('AI 回覆是當場產生的，沒辦法預先錄；你的手機語音沒有反應'); return; }
+      speak(text, 0.85);
+    };
     line.appendChild(spk);
   }
   if (zh && who === 'ai') {
@@ -9956,7 +9985,6 @@ function renderClass() {
     slow.textContent = '🐢 放慢';
     slow.onclick = function(e){ e.stopPropagation(); speakSlow(w[0]); };
     en.appendChild(slow);
-    en.appendChild(hdButton(w[0], '🎧 真人'));
     var ph = document.createElement('div'); ph.className = 'ph'; ph.textContent = w[1];
     var pos = document.createElement('div'); pos.className = 'pos'; pos.textContent = w[2];
     var zh = document.createElement('div'); zh.className = 'zh'; zh.textContent = w[3];
@@ -9982,9 +10010,6 @@ function renderClass() {
       markWordSeen(w[0]);
     }
     speakAuto(w[0]);
-    var hdEx = hdButton(w[4], '🎧 真人念例句');
-    hdEx.style.marginTop = '8px';
-    body.appendChild(hdEx);
     var know = document.createElement('button');
     know.className = 'cls-know';
     know.textContent = '我已經會了';
@@ -10065,7 +10090,6 @@ function renderClass() {
     var play = document.createElement('button');
     play.className = 'dt-play'; play.textContent = '🔊 再聽一次';
     play.onclick = function(){ speakAuto(w[0]); };
-    body.appendChild(hdButton(w[0], '🎧 真人發音'));
     body.appendChild(play);
     var sub = document.createElement('div'); sub.className = 'dt-sub';
     var sb = document.createElement('button'); sb.textContent = '🐢 放慢';
@@ -10093,7 +10117,6 @@ function renderClass() {
     var play2 = document.createElement('button');
     play2.className = 'dt-play'; play2.textContent = '🔊 再聽一次';
     play2.onclick = function(){ speakAuto(st.en); };
-    body.appendChild(hdButton(st.en, '🎧 真人發音'));
     body.appendChild(play2);
     var sub2 = document.createElement('div'); sub2.className = 'dt-sub';
     var sb2 = document.createElement('button'); sb2.textContent = '🐢 放慢';
@@ -10124,7 +10147,6 @@ function renderClass() {
     var play = document.createElement('button');
     play.className = 'dt-play'; play.textContent = '🔊 播放句子';
     play.onclick = function(){ speakAuto(st.en); };
-    body.appendChild(hdButton(st.en, '🎧 真人發音'));
     body.appendChild(play);
     var slow = document.createElement('div'); slow.className = 'dt-sub';
     var b1 = document.createElement('button'); b1.textContent = '🐢 放慢';
