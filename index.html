@@ -5475,6 +5475,24 @@ function playStored(text, rate) {
   } catch (e) { return false; }
 }
 
+// 依序播放多個音檔。必須共用同一個 <audio>：iPhone 只授權使用者點擊當下建立的那一個，
+// 每段都 new Audio 的話第二段以後會被擋掉。
+function playSequence(urls, gapMs) {
+  var a = new Audio();
+  var i = 0;
+  function next() {
+    if (i >= urls.length) return;
+    a.defaultPlaybackRate = a.playbackRate = packRate();
+    a.src = urls[i++];
+    a.defaultPlaybackRate = a.playbackRate = packRate();
+    var p = a.play();
+    if (p && p.catch) p.catch(function(){});
+  }
+  a.addEventListener('ended', function(){ setTimeout(next, gapMs || 550); });
+  next();
+  return a;
+}
+
 // 單字卡上的快捷：一鍵放慢重念
 function speakSlow(text) {
   var slow = Math.max(0.4, speechRate() - 0.25);
@@ -6232,6 +6250,8 @@ function getBestVoice(lang) {
   var eng = voices.filter(function(v) { return v.lang.startsWith('en'); });
   return eng[0] || voices[0] || null;
 }
+var _speechWorks = null;   // null=還不知道 true=可用 false=不可用
+var _speechWarned = false;
 function speak(text, rate) {
   if (!text || !window.speechSynthesis) return;
   var lang = currentAccent === 'uk' ? 'en-GB' : 'en-US';
@@ -6246,7 +6266,19 @@ function speak(text, rate) {
   var v = _loadVoices().length ? getBestVoice(lang) : null;
   if (v) utt.voice = v;
   utt.onerror = function(e) { console.warn('TTS error:', e.error); };
+  // 有些手機（例如使用者的 iPhone）不論怎麼呼叫都不會發聲。
+  // 這種情況要告訴使用者，不然只會看到一個按了沒反應的喇叭。
+  var started = false;
+  utt.onstart = function(){ started = true; _speechWorks = true; };
   speechSynthesis.speak(utt);
+  if (_speechWorks !== true) {
+    setTimeout(function(){
+      if (!started && _speechWorks !== true && !_speechWarned) {
+        _speechWarned = true;
+        toast('這句還沒有內建發音，而你的手機語音沒有反應');
+      }
+    }, 1500);
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -11304,8 +11336,10 @@ function esc(s) {
 function playP2() {
   var it = tState && tState.items[tState.idx];
   if (!it) return;
-  var txt = it.q + ' ... A. ' + it.opts[0].txt + ' ... B. ' + it.opts[1].txt + ' ... C. ' + it.opts[2].txt;
-  speak(txt, 0.85);
+  var parts = [it.q, it.opts[0].txt, it.opts[1].txt, it.opts[2].txt];
+  var urls = parts.map(function(t){ return packUrl(t); });
+  if (hdFirst() && urls.every(function(u){ return !!u; })) { playSequence(urls); return; }
+  speak(it.q + ' ... A. ' + it.opts[0].txt + ' ... B. ' + it.opts[1].txt + ' ... C. ' + it.opts[2].txt, 0.85);
 }
 
 function toggleP2Text() {
