@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>發音自我檢查</title>
+<style>
+:root{
+  --bg:#F5F3EC; --card:#FFFFFF; --line:#DFDACE; --ink:#23211C; --muted:#6B665B;
+  --ok:#1F7A4D; --okbg:#E3F2E9; --bad:#B3261E; --badbg:#FBE7E5; --warn:#8A6100; --warnbg:#FBF1DA;
+  --btn:#2F6F4E;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#191814; --card:#22211C; --line:#35332C; --ink:#EDEAE1; --muted:#A39D90;
+    --ok:#6FD39B; --okbg:#173028; --bad:#FF9B90; --badbg:#3A1E1B; --warn:#E5B85C; --warnbg:#332A17; --btn:#3E8C63; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC",system-ui,sans-serif;
+  line-height:1.55;padding:18px 14px 60px}
+.wrap{max-width:540px;margin:0 auto}
+h1{font-size:21px;margin:0 0 6px}
+p.sub{margin:0 0 16px;color:var(--muted);font-size:14px}
+button#run{width:100%;padding:16px;font-size:17px;font-weight:700;border:none;border-radius:12px;
+  background:var(--btn);color:#fff;cursor:pointer;font-family:inherit}
+button#run:disabled{opacity:.6}
+.row{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-top:9px}
+.row .t{font-weight:700;font-size:15px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.row .d{color:var(--muted);font-size:13px;margin-top:3px;word-break:break-all}
+.badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.ok{color:var(--ok);background:var(--okbg)} .bad{color:var(--bad);background:var(--badbg)}
+.warn{color:var(--warn);background:var(--warnbg)}
+#sum{margin-top:16px;font-size:16px;font-weight:700}
+.hint{margin-top:14px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>發音自我檢查</h1>
+<p class="sub">按下面那顆按鈕，會實際播放幾段聲音並記錄結果。跑完把整個畫面截圖給我。<br>
+測試前請先把手機的<b>靜音鍵關掉</b>、音量開到一半以上。</p>
+<button id="run">開始檢查（會發出聲音）</button>
+<div id="out"></div>
+<div id="sum"></div>
+<p class="hint">這一頁只做檢查，不會改到你的學習紀錄。</p>
+</div>
+
+<script>
+var out = document.getElementById('out');
+function add(title, state, detail){
+  var d = document.createElement('div'); d.className = 'row';
+  var t = document.createElement('div'); t.className = 't';
+  var b = document.createElement('span');
+  b.className = 'badge ' + (state === 'ok' ? 'ok' : state === 'bad' ? 'bad' : 'warn');
+  b.textContent = state === 'ok' ? '正常' : state === 'bad' ? '沒聲音' : '注意';
+  t.appendChild(b);
+  var n = document.createElement('span'); n.textContent = title; t.appendChild(n);
+  d.appendChild(t);
+  if (detail) { var dd = document.createElement('div'); dd.className = 'd'; dd.textContent = detail; d.appendChild(dd); }
+  out.appendChild(d);
+  return d;
+}
+
+// 播一段音檔，回報是不是真的播出來了
+function tryAudio(url, rate){
+  return new Promise(function(res){
+    var a = new Audio(url);
+    if (rate) a.defaultPlaybackRate = a.playbackRate = rate;
+    var done = false;
+    function finish(o){ if (done) return; done = true; try { a.pause(); } catch(e){} res(o); }
+    a.addEventListener('playing', function(){
+      setTimeout(function(){ finish({ok:true, rate:a.playbackRate, dur:a.duration}); }, 400);
+    });
+    a.addEventListener('error', function(){ finish({ok:false, why:'檔案載入失敗（媒體錯誤）'}); });
+    var p = a.play();
+    if (p && p.catch) p.catch(function(e){ finish({ok:false, why:(e && e.name || '') + ' ' + (e && e.message || '')}); });
+    setTimeout(function(){ finish({ok:false, why:'3 秒內沒有開始播放'}); }, 3000);
+  });
+}
+
+// 用手機內建語音念一句，回報有沒有真的開始念
+function trySpeech(text){
+  return new Promise(function(res){
+    if (!window.speechSynthesis) { res({ok:false, why:'這個瀏覽器沒有 speechSynthesis'}); return; }
+    var done = false;
+    function finish(o){ if (done) return; done = true; res(o); }
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.onstart = function(){ finish({ok:true}); };
+    u.onerror = function(e){ finish({ok:false, why:'錯誤：' + (e && e.error)}); };
+    try { speechSynthesis.speak(u); } catch(e){ finish({ok:false, why:'呼叫時例外：' + e.message}); }
+    setTimeout(function(){ finish({ok:false, why:'3 秒內沒有開始念（被系統擋掉或沒有語音）'}); }, 3000);
+  });
+}
+
+document.getElementById('run').addEventListener('click', function(){
+  var btn = this; btn.disabled = true; btn.textContent = '檢查中…'; out.innerHTML = '';
+  // 手勢仍在時先各發一次聲，這是 iPhone 最嚴格的要求
+  var pSpeech = trySpeech('Testing the phone voice.');
+  var pAudio = tryAudio('./audio/able.mp3');
+  run(pSpeech, pAudio).then(function(){
+    btn.disabled = false; btn.textContent = '再檢查一次';
+  });
+});
+
+function run(pSpeech, pAudio){
+  var bad = 0, warn = 0;
+  return Promise.resolve()
+  .then(function(){ return pAudio; })
+  .then(function(r){
+    if (r.ok) add('① 內建發音包（MP3）', 'ok', '播放成功，長度 ' + (r.dur ? r.dur.toFixed(2) + ' 秒' : '未知'));
+    else { bad++; add('① 內建發音包（MP3）', 'bad', r.why); }
+  })
+  .then(function(){ return pSpeech; })
+  .then(function(r){
+    if (r.ok) add('② 手機內建語音', 'ok', '開始念了');
+    else { bad++; add('② 手機內建語音', 'bad', r.why + '｜這會影響 AI 對話、文法例句、多益聽力'); }
+  })
+  .then(function(){
+    var v = [];
+    try { v = speechSynthesis.getVoices() || []; } catch(e){}
+    var en = v.filter(function(x){ return /^en/i.test(x.lang || ''); });
+    if (en.length) add('③ 手機英文語音數量', 'ok', en.length + ' 個，例如：' + en.slice(0,3).map(function(x){ return x.name; }).join('、'));
+    else { warn++; add('③ 手機英文語音數量', 'warn', '0 個（清單還沒載入，或這台裝置沒有英文語音）'); }
+  })
+  .then(function(){ return tryAudio('./audio/able.mp3', 0.7); })
+  .then(function(r){
+    if (r.ok && Math.abs(r.rate - 0.7) < 0.05) add('④ 放慢播放', 'ok', '實際速度 ' + r.rate.toFixed(2) + ' 倍');
+    else if (r.ok) { warn++; add('④ 放慢播放', 'warn', '要求 0.70 倍，實際 ' + r.rate.toFixed(2) + ' 倍（速度被系統改回去）'); }
+    else { bad++; add('④ 放慢播放', 'bad', r.why); }
+  })
+  .then(function(){
+    return fetch('./audio/index.json', { cache: 'no-cache' }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+  })
+  .then(function(idx){
+    window.__idx = idx;
+    if (!idx) { bad++; add('⑤ 發音清單（網路最新）', 'bad', '抓不到 audio/index.json'); return; }
+    var ks = Object.keys(idx);
+    var wav = ks.filter(function(k){ return /\.wav$/.test(idx[k]); }).length;
+    if (ks.length > 7000 && !wav) add('⑤ 發音清單（網路最新）', 'ok', ks.length + ' 筆，全部是 MP3');
+    else { warn++; add('⑤ 發音清單（網路最新）', 'warn', ks.length + ' 筆，其中 .wav ' + wav + ' 筆'); }
+  })
+  .then(function(){
+    if (!window.caches) { warn++; add('⑥ App 目前用的清單（快取）', 'warn', '這個瀏覽器沒有 Cache API'); return; }
+    return caches.match('./audio/index.json').then(function(hit){
+      if (!hit) { add('⑥ App 目前用的清單（快取）', 'ok', '快取裡沒有舊清單'); return; }
+      return hit.json().then(function(j){
+        var ks = Object.keys(j);
+        var wav = ks.filter(function(k){ return /\.wav$/.test(j[k]); }).length;
+        if (wav) { bad++; add('⑥ App 目前用的清單（快取）', 'bad', '是舊的：' + ks.length + ' 筆、.wav ' + wav + ' 筆。舊清單指向已刪除的檔案，所以會沒聲音'); }
+        else add('⑥ App 目前用的清單（快取）', 'ok', ks.length + ' 筆，全部是 MP3');
+      });
+    }).catch(function(){ warn++; add('⑥ App 目前用的清單（快取）', 'warn', '讀不到'); });
+  })
+  .then(function(){
+    if (!window.caches) return;
+    return caches.open('daily-english-audio').then(function(c){ return c.keys(); }).then(function(rs){
+      var wav = rs.filter(function(r){ return /\.wav(\?|$)/.test(r.url); }).length;
+      var mp3 = rs.filter(function(r){ return /\.mp3(\?|$)/.test(r.url); }).length;
+      var s = '共 ' + rs.length + ' 個（mp3 ' + mp3 + '、wav ' + wav + '）';
+      if (wav) { warn++; add('⑦ 手機存的發音檔', 'warn', s + '｜還有舊的 wav 沒清掉'); }
+      else add('⑦ 手機存的發音檔', 'ok', s);
+    }).catch(function(){ add('⑦ 手機存的發音檔', 'warn', '讀不到'); });
+  })
+  .then(function(){
+    return fetch('./sw.js', { cache: 'no-cache' }).then(function(r){ return r.text(); }).then(function(t){
+      var online = (t.match(/daily-english-v\d+/) || ['?'])[0];
+      if (!navigator.serviceWorker) { add('⑧ 版本', 'warn', '網站最新：' + online + '（這個瀏覽器不支援 Service Worker）'); return; }
+      return navigator.serviceWorker.getRegistrations().then(function(rs){
+        var act = rs.map(function(r){ return r.active ? (r.active.scriptURL || '').split('/').pop() : '-'; }).join(',');
+        add('⑧ 版本', 'ok', '網站最新：' + online + '｜已註冊的 Service Worker：' + (rs.length ? act : '無'));
+      });
+    }).catch(function(){ warn++; add('⑧ 版本', 'warn', '讀不到 sw.js'); });
+  })
+  .then(function(){
+    // 抽幾個不同單元實際會念的內容，看在不在發音包裡
+    var idx = window.__idx || {};
+    var probes = [
+      ['單字卡 city', 'city'],
+      ['複習卡 able', 'able'],
+      ['多益 Part 2 題目', null],
+      ['文法例句', null]
+    ];
+    var miss = [];
+    ['city','able','about','accept'].forEach(function(w){ if (!idx[w]) miss.push(w); });
+    if (miss.length) { bad++; add('⑨ 常見單字在不在發音包', 'bad', '缺少：' + miss.join('、')); }
+    else add('⑨ 常見單字在不在發音包', 'ok', 'city / able / about / accept 都有');
+  })
+  .then(function(){
+    var s = document.getElementById('sum');
+    s.textContent = bad ? ('結果：有 ' + bad + ' 項沒聲音' + (warn ? ('、' + warn + ' 項要注意') : '') + '。請把整個畫面截圖給我。')
+                        : (warn ? ('結果：全部有聲音，但有 ' + warn + ' 項要注意。請截圖給我。')
+                                : '結果：全部正常。請截圖給我。');
+  });
+}
+</script>
+</body>
+</html>
