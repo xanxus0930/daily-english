@@ -5462,16 +5462,37 @@ function packRate(rate) {
 }
 
 // 用內建包或已下載的音檔播放，可指定速度；沒有就回傳 false
+// 整個 App 共用這一個 <audio>。iPhone 只把「使用者點擊時建立並播放過的那一個」視為已授權，
+// 每次都 new Audio 的話，第二次之後會播不出來而退回手機語音。
+var _player = null;
+var _playerText = '';
+var _playerRate = null;
+
+function audioPlayer() {
+  if (_player) return _player;
+  _player = new Audio();
+  _player.addEventListener('error', function(){
+    // 真的拿不到檔案時（離線又還沒快取）才退回手機語音，不能靜悄悄沒聲音
+    if (_playerText) speak(_playerText, _playerRate ? _playerRate * 0.85 : undefined);
+  });
+  return _player;
+}
+
 function playStored(text, rate) {
   var url = packUrl(text) || _ttsCache[ttsVoice() + '|' + text];
   if (!url) return false;
   try {
-    var a = new Audio(url);
+    var a = audioPlayer();
+    var r = rate ? Math.max(0.5, Math.min(4, rate)) : 1;
+    _playerText = text;
+    _playerRate = rate || null;
+    try { a.pause(); } catch (e) {}
     // 同時設 defaultPlaybackRate：規格上音檔開始載入時 playbackRate 會被重設成它，
     // Safari 會照這個規則把速度改回 1，「🐢 放慢」在 iPhone 上就不會變慢
-    if (rate) a.defaultPlaybackRate = a.playbackRate = Math.max(0.5, Math.min(4, rate));
-    // 沒預抓到的課在離線時會抓不到檔，這時要退回裝置語音，不能靜悄悄沒聲音
-    a.onerror = function(){ speak(text, rate ? rate * 0.85 : undefined); };
+    a.defaultPlaybackRate = r;
+    a.src = url;
+    a.defaultPlaybackRate = a.playbackRate = r;
+    a.currentTime = 0;
     var pr = a.play();
     if (pr && pr.catch) pr.catch(function(){});
     return true;
@@ -5481,7 +5502,8 @@ function playStored(text, rate) {
 // 依序播放多個音檔。必須共用同一個 <audio>：iPhone 只授權使用者點擊當下建立的那一個，
 // 每段都 new Audio 的話第二段以後會被擋掉。
 function playSequence(urls, gapMs) {
-  var a = new Audio();
+  var a = audioPlayer();
+  _playerText = '';
   var i = 0;
   function next() {
     if (i >= urls.length) return;
@@ -6184,14 +6206,14 @@ function checkVoiceSource(btn) {
   lines.push('發音包裡有沒有：' + (url ? '有（' + url.split('/').pop() + '）' : '沒有'));
   lines.push('「自動用真人發音」設定：' + (hdFirst() ? '開啟' : '關閉 ← 關閉時一律用手機語音'));
 
-  // 攔一次，看實際走哪條路
+  // 播一次，看實際走哪條路（全 App 共用同一個 <audio>，所以不能靠攔截建構子判斷）
   var used = null;
-  var _A = window.Audio;
   var _sp = speechSynthesis.speak;
-  window.Audio = function(u){ used = used || '內建發音包（Jenny）'; return new _A(u); };
   speechSynthesis.speak = function(u){ used = used || '手機內建語音'; return _sp.call(speechSynthesis, u); };
-  try { speakAuto(word); } catch (e) { lines.push('播放時出錯：' + e.message); }
-  window.Audio = _A;
+  try {
+    if (hdFirst() && playStored(word, packRate())) used = '內建發音包（Jenny）';
+    else speakAuto(word);
+  } catch (e) { lines.push('播放時出錯：' + e.message); }
   speechSynthesis.speak = _sp;
 
   lines.push('這一次實際用的是：' + (used || '沒有播放'));
@@ -6246,10 +6268,10 @@ function diagnoseHD() {
 function speakHD(text, btn) {
   if (!text) return;
   var pu0 = packUrl(text);
-  if (pu0) { try { var a0 = new Audio(pu0); a0.defaultPlaybackRate = a0.playbackRate = packRate(); a0.play(); return; } catch (e) {} }
+  if (pu0) { if (playStored(text, packRate())) return; }
   if (_ttsBusy) { toast('上一個還在產生中，等一下'); return; }
   var key = ttsVoice() + '|' + text;
-  if (_ttsCache[key]) { var ac = new Audio(_ttsCache[key]); ac.defaultPlaybackRate = ac.playbackRate = packRate(); ac.play(); return; }
+  if (_ttsCache[key]) { if (playStored(text, packRate())) return; }
   // 沒有 API Key 就沒辦法產生真人發音，但按了喇叭一定要有聲音：先用裝置語音念
   if (!hasApiKey()) {
     speak(text);
