@@ -5167,6 +5167,62 @@ a: [
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
+// 啟動時只要有任何一行出錯，整個 App 會停在空畫面，使用者只看得到一張空的單字卡。
+// 把錯誤直接顯示出來，才有辦法知道是哪裡壞掉。
+var _fatalShown = false;
+function showFatal(msg, where) {
+  if (_fatalShown) return;
+  _fatalShown = true;
+  var box = document.createElement('div');
+  box.id = 'fatal-box';
+  box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;padding:12px 14px;'
+    + 'border-radius:10px;background:#FBE7E5;color:#7A1810;border:1px solid #E5A79F;'
+    + 'font:13px/1.6 -apple-system,system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.18)';
+  var t = document.createElement('div');
+  t.style.cssText = 'font-weight:700;margin-bottom:4px';
+  t.textContent = '⚠️ App 啟動時出錯了';
+  var m = document.createElement('div');
+  m.style.cssText = 'word-break:break-all;margin-bottom:8px';
+  m.textContent = String(msg || '未知錯誤') + (where ? '　（' + where + '）' : '');
+  var row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+  function btn(label, fn) {
+    var b = document.createElement('button');
+    b.textContent = label;
+    b.style.cssText = 'padding:7px 12px;border-radius:99px;border:1px solid #E5A79F;'
+      + 'background:#fff;color:#7A1810;font:12px/1 inherit;cursor:pointer';
+    b.onclick = fn;
+    row.appendChild(b);
+  }
+  btn('重新載入', function(){ location.reload(); });
+  btn('清掉快取再載入', function(){
+    var done = function(){ location.reload(); };
+    if (window.caches) {
+      caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){ return caches.delete(k); })); })
+        .then(function(){
+          if (navigator.serviceWorker) {
+            return navigator.serviceWorker.getRegistrations().then(function(rs){
+              return Promise.all(rs.map(function(r){ return r.unregister(); }));
+            });
+          }
+        }).then(done, done);
+    } else { done(); }
+  });
+  btn('複製錯誤訊息', function(){
+    var txt = m.textContent + ' | ' + navigator.userAgent;
+    if (navigator.clipboard) navigator.clipboard.writeText(txt);
+  });
+  box.appendChild(t); box.appendChild(m); box.appendChild(row);
+  (document.body || document.documentElement).appendChild(box);
+}
+window.addEventListener('error', function(e){
+  showFatal(e.message, (e.filename || '').split('/').pop() + ':' + e.lineno);
+});
+window.addEventListener('unhandledrejection', function(e){
+  var r = e.reason;
+  showFatal('Promise: ' + ((r && r.message) || r), '');
+});
+
 var S = {
   g: function(k, d) { try { var v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : d; } catch(e) { return d; } },
   s: function(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} },
@@ -8337,23 +8393,34 @@ function goScreen(s) {
 // ══════════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════════
-setAccent(currentAccent);
-loadPack().then(function(idx){
-  if (idx) {
-    try { renderHdCache(); } catch (e) {}
-    try { prefetchLessons(); } catch (e) {}
-  }
+// 一段一段跑。某一段壞掉時記下來，但後面該跑的還是要跑，
+// 不然整個畫面會停在 HTML 的靜態預設值。
+function boot(name, fn) {
+  try { fn(); } catch (e) { showFatal(e && e.message, name); }
+}
+boot('setAccent', function(){ setAccent(currentAccent); });
+boot('loadPack', function(){
+  loadPack().then(function(idx){
+    if (idx) {
+      try { renderHdCache(); } catch (e) {}
+      try { prefetchLessons(); } catch (e) {}
+    }
+  }).catch(function(){});
 });
-warmTtsCache();
-initDaily();
-renderWord();
-renderReview();
-buildQuiz();
-initSpeechRateUI();
-initApiUI();
-document.getElementById('xp-num').textContent = S.xp;
-updateGoalBar();
-checkBadges();
+boot('warmTtsCache', function(){ warmTtsCache(); });
+boot('initDaily', function(){ initDaily(); });
+boot('renderWord', function(){ renderWord(); });
+boot('renderReview', function(){ renderReview(); });
+boot('buildQuiz', function(){ buildQuiz(); });
+boot('initSpeechRateUI', function(){ initSpeechRateUI(); });
+boot('initApiUI', function(){ initApiUI(); });
+boot('xp', function(){ document.getElementById('xp-num').textContent = S.xp; });
+boot('updateGoalBar', function(){ updateGoalBar(); });
+boot('checkBadges', function(){ checkBadges(); });
+// 單字沒載進來就等於整個 App 不能用，一定要講出來
+if (!todayWords.length) {
+  showFatal('今天的單字沒有載入（等級 ' + lv + '，課次 ' + getLesson(lv) + '）', 'todayWords 是空的');
+}
 
 // ── 自動偵測新的一天 ──────────────────────────
 var _lastCheckedDate = dOf(new Date());
