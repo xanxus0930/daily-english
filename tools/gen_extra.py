@@ -50,6 +50,24 @@ def read_js_string(s, k):
 
 texts = []
 
+# ── 單字卡的延伸片語（第 8 欄，格式 "phrase=中文/phrase2=中文2"）──
+blk = src[src.index('var WORDS = {'):src.index('\nvar S = {')]
+for line in blk.split('\n'):
+    t = line.strip().rstrip(',')
+    if not t.startswith('["'):
+        continue
+    if t.endswith(']]'):
+        t = t[:-1]
+    try:
+        f = json.loads(t)
+    except Exception:
+        continue
+    if len(f) > 7 and f[7]:
+        for item in f[7].split('/'):
+            en = item.split('=')[0].strip()
+            if en:
+                texts.append(('延伸片語', en))
+
 # ── 文法例句：GRAMMAR 是單行 JSON，直接解析 ──
 i = src.index('var GRAMMAR = ')
 body = src[i + len('var GRAMMAR = '):src.index('\n', i)].rstrip().rstrip(';')
@@ -130,8 +148,15 @@ state = {'ok': 0, 'fail': []}
 t0 = time.time()
 
 
+def fname(text):
+    if re.fullmatch(r'[A-Za-z0-9 ]+', text):
+        return re.sub(r'[^a-z0-9]+', '_', text.lower()).strip('_') + '.mp3'
+    return 'w_' + hashlib.md5(text.encode('utf-8')).hexdigest()[:12] + '.mp3'
+
+
 async def one(text, sem):
-    fn = 's_' + hashlib.md5(text.encode('utf-8')).hexdigest()[:12] + '.mp3'
+    fn = (fname(text) if len(text.split()) <= 4
+          else 's_' + hashlib.md5(text.encode('utf-8')).hexdigest()[:12] + '.mp3')
     path = os.path.join(OUT, fn)
     async with sem:
         last = None

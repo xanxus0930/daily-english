@@ -255,6 +255,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .cls-sec .zh{font-size:12px;color:var(--t2);margin-top:3px;line-height:1.7}
 .cls-sec .plain{font-size:13px;color:var(--t2);line-height:1.8}
 .cls-spk{float:right;cursor:pointer;font-size:16px;margin-left:8px}
+    .q-spk{display:inline-flex;align-items:center;gap:5px;margin:-2px 0 10px;padding:6px 13px;
+      border-radius:99px;background:var(--gl);border:1px solid var(--gb);color:var(--green);
+      font-size:12px;cursor:pointer;font-family:var(--sans)}
 .cls-sum{text-align:center;padding:14px 0}
 .cls-sum .big{font-size:40px;margin-bottom:8px}
 .cls-sum .n{font-size:24px;font-weight:700;color:var(--text)}
@@ -1069,53 +1072,24 @@ a:hover{color:#643312}
           <button class="set-btn green" onclick="setStartDate()">設定</button>
         </div>
         <div id="start-status" style="font-size:12px;color:var(--green);margin-bottom:8px;margin-left:0"></div>
-        <div style="font-size:12px;color:var(--t2);margin:10px 0 6px">發音人</div>
+        <div style="font-size:12px;color:var(--t2);margin:10px 0 6px">課程發音</div>
+        <div class="hd-note" id="hd-cache"></div>
+        <div class="voice-row" style="margin-top:6px">
+          <button class="voice-try" style="flex:1" onclick="checkVoiceSource(this)">🔧 檢查發音是從哪裡來的</button>
+        </div>
+        <div class="hd-note" id="src-check" style="margin-bottom:12px"></div>
+
+        <div style="font-size:12px;color:var(--t2);margin:10px 0 6px">手機語音（只有 AI 對話會用到）</div>
         <div class="voice-row">
           <select id="voice-sel" onchange="setVoice(this.value)"></select>
           <button class="voice-try" onclick="speak('Hello. Could you please confirm the shipping schedule?')">🔊 試聽</button>
         </div>
         <div class="voice-row" style="margin-top:-2px">
-          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="reloadVoices()">🔄 重新偵測語音</button>
+          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="reloadVoices()">🔄 重新偵測</button>
           <button class="voice-try" style="flex:0 0 auto;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="dumpVoices()">📋 清單</button>
         </div>
         <div id="voice-dump" class="hd-note" style="max-height:200px;overflow:auto"></div>
         <div id="voice-count" style="font-size:11px;color:var(--t3);margin-bottom:12px;line-height:1.6"></div>
-
-        <div style="font-size:12px;color:var(--t2);margin:10px 0 6px">真人發音（用 AI 語音，需要 API Key）</div>
-        <div class="voice-row">
-          <select id="tts-voice-sel" onchange="setTtsVoice(this.value)"></select>
-          <button class="voice-try" onclick="speakHD('Please confirm the shipping schedule by Friday.', this)">🎧 試聽</button>
-        </div>
-        <div class="hd-note">
-          裝置語音太機械時，按單字卡或課堂上的「🎧 真人」會用 AI 語音重念。
-          <b>抓過的字會永久存在手機裡，之後不再消耗額度，離線也能聽。</b><br>
-          免費額度是<b>一天 10 次請求</b>，而「下載這課」整課 8 個字<b>只算 1 次</b>，
-          所以每天上一課完全夠用，學過的字也永遠不用再抓。
-        </div>
-        <div class="voice-row" style="margin-top:8px">
-          <button class="voice-try" style="flex:1" onclick="prefetchLesson(false)">⬇️ 下載這課單字（只花 1 次額度）</button>
-        </div>
-        <div class="voice-row" style="margin-top:-2px">
-          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="prefetchLesson(true)">⬇️ 連例句一起下載（約 2 次額度）</button>
-        </div>
-        <div class="hd-bar" id="hd-pre-bar" style="display:none">
-          <div class="fill"><i id="hd-pre-fill"></i></div>
-          <span id="hd-pre-txt"></span>
-        </div>
-        <div class="hd-note" id="hd-cache"></div>
-        <div class="set-row" style="margin-top:6px">
-          <label>下載過的字自動用真人發音</label>
-          <button class="set-btn green" id="hd-first-btn" onclick="setHdFirst(!hdFirst())">✓ 已開啟</button>
-        </div>
-        <div class="voice-row" style="margin-top:6px">
-          <button class="voice-try" style="flex:1" onclick="checkVoiceSource(this)">🔧 檢查發音是從哪裡來的</button>
-        </div>
-        <div class="hd-note" id="src-check" style="margin-bottom:12px"></div>
-        <div class="voice-row" style="margin-top:6px">
-          <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="diagnoseHD()">🔎 檢查真人發音為什麼不動</button>
-          <button class="voice-try" style="flex:0 0 auto;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="ttsClear()">🗑 清除</button>
-        </div>
-        <div class="hd-note" id="hd-diag" style="margin-bottom:12px"></div>
 
         <div style="font-size:12px;color:var(--t2);margin-bottom:6px">語速</div>
         <div class="spd-wrap">
@@ -3191,7 +3165,7 @@ i: [
     ["enforceable", "ɪnˈfɔrsəbəl", "adj.", "可強制的；可執行的", "A contract signed under duress is not legally enforceable.", "在脅迫下簽署的合約在法律上不可強制執行。", "enforce (執行) + able，指具有法律效力且可依訴訟強制的。", "legally enforceable=具有法律約束力的/enforceable agreement=可執行的協議/enforceable rights=可強制的權利", "The company made sure all terms were legally enforceable. They hired an experienced legal counsel for guidance. This ensured protection if disputes occurred later.", "法務,契約"],
     ["waive", "weɪv", "v.", "放棄（權利、要求）；免除", "The company agreed to waive the registration fee for new applicants.", "該公司同意免除新申請者的註冊費用。", "發音同 wave，可聯想揮揮手「放棄」或「拋棄」某項權利或費用。", "waive a right=放棄權利/waive a fee=免除費用/waive a penalty=免除罰款", "The client chose to waive their right to appeal. Both sides preferred to complete the business deal smoothly. The relationship remained positive going forward.", "法務,契約"],
     ["compensation", "ˌkɑmpənˈseɪʃən", "n.", "賠償金；報酬；補償", "Workers received financial compensation for their overtime hours.", "員工獲得了加班的經濟補償。", "compensate (補償) 的名詞，指對損失或工作的經濟給付。", "compensation package=薪酬方案/seek compensation=尋求賠償/financial compensation=經濟補償", "The court ordered the firm to pay compensation for environmental damage. Management revised internal compliance guidelines immediately. They pledged to operate responsibly in the future.", "賠償,法務"],
-    ["compliance", "kəmˈplaɪəns", "n.", "合規；遵守；順從", "Strict compliance with safety protocols is mandatory for all workers.", "所有工人均須嚴格遵守安全規範。", "comply (遵守) 的名詞，常見於 corporate compliance (企業合規)。", "in compliance with=符合/合乎/compliance officer=合規主管/regulatory compliance=法規遵循", "The compliance department regularly reviews operational safety. Staff members attend annual training on legal guidelines. This minimizes the risk of regulatory fines.", "合規,法務"],
+    ["compliance", "kəmˈplaɪəns", "n.", "合規；遵守；順從", "Strict compliance with safety protocols is mandatory for all workers.", "所有工人均須嚴格遵守安全規範。", "comply (遵守) 的名詞，常見於 corporate compliance (企業合規)。", "in compliance with=符合、合乎/compliance officer=合規主管/regulatory compliance=法規遵循", "The compliance department regularly reviews operational safety. Staff members attend annual training on legal guidelines. This minimizes the risk of regulatory fines.", "合規,法務"],
     ["comply", "kəmˈplaɪ", "v.", "遵守；服從", "All legal documents must comply with federal safety regulations.", "所有法律文件必須遵守聯邦安全法規。", "必搭介系詞 with，如 comply with regulations/laws。", "comply with rules=遵守規則/comply with regulations=符合法規/comply with requirements=符合要求", "The manufacturer had to comply with local safety standards. They updated their operations before signing the supply deal. This step avoided heavy fines from the authority.", "契約,法務,合規"],
     ["confidential", "ˌkɑnfəˈdɛnʃəl", "adj.", "機密的；保密的", "All staff must sign a non-disclosure agreement to keep trade secrets confidential.", "所有員工必須簽署保密協議，以確保商業機密不外洩。", "常搭 keep ... confidential 或 confidential information。", "confidential information=機密資訊/confidential data=保密資料/strictly confidential=嚴格保密", "The client sent confidential financial report documents for legal review. The team stored the files on a secure server with restricted access. Protecting this sensitive information was top priority.", "契約,法務,保密"],
     ["enforce", "ɪnˈfɔrs", "v.", "強制執行；實施", "The regulatory authority will enforce the new data protection law strictly next month.", "監管機構下個月將嚴格執行新的資料保護法。", "常搭 enforce laws/rules/contracts，名詞為 enforcement。", "enforce compliance=強制合規/enforce rules=執行規則/enforce contract=強制執行合約", "The local court will enforce the foreign arbitration decision. If the respondent refuses to pay, their assets may be seized. This proves the legal agreement holds real power.", "契約,法務,執行"],
@@ -6965,7 +6939,7 @@ function renderQuiz() {
   qAnswered = false;
   var html = '<div style="font-size:11px;color:var(--t3);margin-bottom:4px">第 ' + (qIdx+1) + ' / ' + quizItems.length + ' 題</div>' +
     '<div class="q-card"><div class="q-text">' + q.q + '</div>' +
-    '';
+    '<button id="q-spk" class="q-spk">' + (q.speakQ ? '🔊 再聽一次' : '🔊 聽這個字（會透露答案）') + '</button>';
   if (q.type === 'mc') {
     html += '<div class="q-opts">';
     q.opts.forEach(function(opt, i) {
@@ -6985,7 +6959,9 @@ function renderQuiz() {
       btn.addEventListener('click', function() { checkMC(btn, q.opts[i]); });
     });
   }
-  // Auto-read the word in quiz（題目本身有英文時才唸，否則會唸出答案）
+  // 每一題都有發音鈕；題目本身沒有英文的那幾題不自動念，免得直接給答案
+  var qs = document.getElementById('q-spk');
+  if (qs) qs.addEventListener('click', function(){ speakAuto(q.w[0]); });
   if (q.speakQ) speakAuto(q.w[0]);
   if (q.type === 'fill') {
     var inp = document.getElementById('q-fill-inp');
@@ -7051,6 +7027,8 @@ function showQFeedback(correct, q) {
     ex.appendChild(exzh);
     fb.appendChild(ex);
     if (!q.speakQ) speakAuto(q.w[0]);
+    var qs2 = document.getElementById('q-spk');
+    if (qs2) qs2.textContent = '🔊 再聽一次';
   }
   if (!correct) {
     var svBtn = document.createElement('button');
@@ -7998,12 +7976,50 @@ function resetChat() {
   lastAiPhrase = '';
   var scene = curScene();
   showHints(scene);
-  var opener = scene.convos[0];
-  appendMsg(opener.a, opener.zh, 'ai');
-  chatHistory.push({ role:'model', text: opener.a });
-  lastAiPhrase = opener.a;
   chatConvoIdx = 1;
   updateAiStatus();
+
+  function scripted() {
+    var opener = scene.convos[0];
+    appendMsg(opener.a, opener.zh, 'ai');
+    chatHistory.push({ role:'model', text: opener.a });
+    lastAiPhrase = opener.a;
+  }
+  // 沒有金鑰就用腳本開場。有金鑰時讓 AI 依目前難度現場開場，
+  // 否則每次進場景看到的都是同一句，難度也看不出差別。
+  if (!hasApiKey()) { scripted(); return; }
+  chatBusy = true;
+  showTyping();
+  callGemini(buildSystemPrompt(scene),
+    [{ role:'user', text: '(Start the scene. Say your opening line to me now.)' }],
+    function(r) {
+      chatBusy = false;
+      hideTyping();
+      var o = r.error ? null : parseAiJson(r.raw);
+      var reply = o && (o.reply || '').trim();
+      if (!reply) { scripted(); return; }
+      appendMsg(reply, (o.zh || '').trim(), 'ai');
+      chatHistory.push({ role:'model', text: reply });
+      lastAiPhrase = reply;
+      showHintList(o.hints);
+    });
+}
+
+// 建議回覆改成跟著 AI 的回覆走；AI 沒給就留著場景原本的
+function showHintList(arr) {
+  if (!arr || !arr.length) return;
+  var el = document.getElementById('chat-hints');
+  if (!el) return;
+  el.innerHTML = '';
+  arr.slice(0, 4).forEach(function(h) {
+    h = String(h || '').trim();
+    if (!h) return;
+    var btn = document.createElement('button');
+    btn.className = 'hint-pill';
+    btn.textContent = h;
+    btn.onclick = function() { document.getElementById('chat-inp').value = h; sendMsg(); };
+    el.appendChild(btn);
+  });
 }
 function showHints(scene) {
   var el = document.getElementById('chat-hints');
@@ -8161,6 +8177,14 @@ function renderChatLevel() {
     });
   sel.onchange = function(){ setChatTier(sel.value); };
   el.appendChild(b); el.appendChild(d); el.appendChild(sel);
+  // 沒有 API Key 時回的是固定腳本，難度設定完全不會生效。
+  // 使用者反映「切換等級內容都一樣」，就是因為這個。
+  if (!hasApiKey()) {
+    sel.disabled = true;
+    b.textContent = '腳本模式';
+    d.textContent = '目前沒有 API Key，回覆是固定的對話腳本，難度設定不會生效。'
+                  + '要真的跟 AI 對話、讓難度跟著調整，請到設定頁填入 API Key。';
+  }
 }
 
 function buildSystemPrompt(scene) {
@@ -8182,9 +8206,10 @@ function buildSystemPrompt(scene) {
     '- If the user writes in Chinese, answer in English and gently steer them back to English.',
     '- Prefer business-appropriate register over slang, but keep it natural spoken English.',
     '- The reply length and vocabulary limits in the difficulty level above override everything else.',
-    'Return ONLY a JSON object with exactly these four string fields:',
+    'Return ONLY a JSON object with exactly these five fields:',
     '{"reply": "your spoken reply in English",',
     ' "zh": "Traditional Chinese translation of reply",',
+    ' "hints": ["three short things the learner could say next, in English, at the difficulty level above"],',
     ' "correction": "one short note in Traditional Chinese about the user\'s English error or unnatural wording; when it matches a common TOEIC grammar point, name it, e.g. 多益常考：request that + 原形動詞. Empty string if it was fine",',
     ' "better": "a more natural, business-appropriate English version of what the user said (the kind of wording that appears in TOEIC), or empty string if it was already natural"}',
     'Keep correction under 40 Chinese characters. If the user\'s English was already good, set both correction and better to "".'
@@ -8221,6 +8246,7 @@ function sendMsg() {
     appendMsg(reply, (o.zh || '').trim(), 'ai', { correction:(o.correction||'').trim(), better:(o.better||'').trim() });
     chatHistory.push({ role:'model', text: reply });
     lastAiPhrase = (o.better && o.better.trim()) ? o.better.trim() : reply;
+    showHintList(o.hints);
   });
 }
 function scriptedReply() {
