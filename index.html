@@ -5468,14 +5468,34 @@ var _player = null;
 var _playerText = '';
 var _playerRate = null;
 
+var _queue = [];      // 還沒播的音檔（多益 Part 2 會一次排四段）
+
 function audioPlayer() {
   if (_player) return _player;
   _player = new Audio();
+  // 監聽器只掛這一次。掛在每次播放裡的話會一直累積，
+  // 播完一個單字也會誤觸別人的序列。
+  _player.addEventListener('ended', function(){
+    if (_queue.length) setTimeout(playNext, 550);
+  });
   _player.addEventListener('error', function(){
+    _queue = [];
     // 真的拿不到檔案時（離線又還沒快取）才退回手機語音，不能靜悄悄沒聲音
     if (_playerText) speak(_playerText, _playerRate ? _playerRate * 0.85 : undefined);
   });
   return _player;
+}
+
+function playNext() {
+  var url = _queue.shift();
+  if (!url) return;
+  var a = audioPlayer();
+  var r = packRate();
+  a.defaultPlaybackRate = r;
+  a.src = url;
+  a.defaultPlaybackRate = a.playbackRate = r;
+  var p = a.play();
+  if (p && p.catch) p.catch(function(){});
 }
 
 function playStored(text, rate) {
@@ -5484,15 +5504,15 @@ function playStored(text, rate) {
   try {
     var a = audioPlayer();
     var r = rate ? Math.max(0.5, Math.min(4, rate)) : 1;
+    _queue = [];              // 取消還沒播完的序列，不然會接著播別的
     _playerText = text;
     _playerRate = rate || null;
     try { a.pause(); } catch (e) {}
     // 同時設 defaultPlaybackRate：規格上音檔開始載入時 playbackRate 會被重設成它，
     // Safari 會照這個規則把速度改回 1，「🐢 放慢」在 iPhone 上就不會變慢
     a.defaultPlaybackRate = r;
-    a.src = url;
+    a.src = url;              // 換 src 本來就會把播放位置歸零，不要再設 currentTime
     a.defaultPlaybackRate = a.playbackRate = r;
-    a.currentTime = 0;
     var pr = a.play();
     if (pr && pr.catch) pr.catch(function(){});
     return true;
@@ -5501,21 +5521,11 @@ function playStored(text, rate) {
 
 // 依序播放多個音檔。必須共用同一個 <audio>：iPhone 只授權使用者點擊當下建立的那一個，
 // 每段都 new Audio 的話第二段以後會被擋掉。
-function playSequence(urls, gapMs) {
-  var a = audioPlayer();
+function playSequence(urls) {
+  audioPlayer();
   _playerText = '';
-  var i = 0;
-  function next() {
-    if (i >= urls.length) return;
-    a.defaultPlaybackRate = a.playbackRate = packRate();
-    a.src = urls[i++];
-    a.defaultPlaybackRate = a.playbackRate = packRate();
-    var p = a.play();
-    if (p && p.catch) p.catch(function(){});
-  }
-  a.addEventListener('ended', function(){ setTimeout(next, gapMs || 550); });
-  next();
-  return a;
+  _queue = urls.slice();
+  playNext();
 }
 
 // 單字卡上的快捷：一鍵放慢重念
