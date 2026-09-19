@@ -1108,6 +1108,10 @@ a:hover{color:#643312}
           <button class="set-btn green" id="hd-first-btn" onclick="setHdFirst(!hdFirst())">✓ 已開啟</button>
         </div>
         <div class="voice-row" style="margin-top:6px">
+          <button class="voice-try" style="flex:1" onclick="checkVoiceSource(this)">🔧 檢查發音是從哪裡來的</button>
+        </div>
+        <div class="hd-note" id="src-check" style="margin-bottom:12px"></div>
+        <div class="voice-row" style="margin-top:6px">
           <button class="voice-try" style="flex:1;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="diagnoseHD()">🔎 檢查真人發音為什麼不動</button>
           <button class="voice-try" style="flex:0 0 auto;background:var(--bg2);color:var(--t2);border-color:var(--border)" onclick="ttsClear()">🗑 清除</button>
         </div>
@@ -6160,6 +6164,48 @@ function speakAuto(text, rate) {
   if (playStored(text, packRate(rate))) return;
   // 都沒有就立刻用裝置語音。不能先去查資料庫再念，iPhone 會因為「不是點擊當下」而擋掉
   speak(text, rate);
+}
+
+// 直接在 App 裡念一次這一課的單字，並報告聲音實際是從哪裡來的。
+// 使用者在別的瀏覽器裡跑檢查頁看到的結果，不代表這個 App 的狀況。
+function checkVoiceSource(btn) {
+  var box = document.getElementById('src-check');
+  if (!box) return;
+  var lines = [];
+  function show() {
+    box.innerHTML = '';
+    lines.forEach(function(t){ var d = document.createElement('div'); d.textContent = t; box.appendChild(d); });
+  }
+  var w = (todayWords && todayWords.length) ? todayWords[0] : null;
+  var word = w ? w[0] : 'able';
+  var url = packUrl(word);
+
+  lines.push('要念的字：' + word);
+  lines.push('發音包裡有沒有：' + (url ? '有（' + url.split('/').pop() + '）' : '沒有'));
+  lines.push('「自動用真人發音」設定：' + (hdFirst() ? '開啟' : '關閉 ← 關閉時一律用手機語音'));
+
+  // 攔一次，看實際走哪條路
+  var used = null;
+  var _A = window.Audio;
+  var _sp = speechSynthesis.speak;
+  window.Audio = function(u){ used = used || '內建發音包（Jenny）'; return new _A(u); };
+  speechSynthesis.speak = function(u){ used = used || '手機內建語音'; return _sp.call(speechSynthesis, u); };
+  try { speakAuto(word); } catch (e) { lines.push('播放時出錯：' + e.message); }
+  window.Audio = _A;
+  speechSynthesis.speak = _sp;
+
+  lines.push('這一次實際用的是：' + (used || '沒有播放'));
+  if (used === '手機內建語音' && url) {
+    lines.push('→ 發音包裡明明有，卻用了手機語音，請把上面的設定打開');
+  }
+  lines.push('發音包共 ' + (_packIndex ? Object.keys(_packIndex).length : 0) + ' 筆');
+  show();
+  if (window.caches) {
+    caches.open('daily-english-audio').then(function(c){ return c.keys(); }).then(function(rs){
+      lines.push('已存在這支手機裡的音檔：' + rs.length + ' 個');
+      show();
+    }).catch(function(){});
+  }
 }
 
 // 診斷：直接告訴使用者真人發音為什麼不動
