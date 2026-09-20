@@ -5313,9 +5313,6 @@ function setPickedLv(l) {
   initDaily(); renderWord(); renderReview(); buildQuiz(); renderQuiz(); updateLvUI();
   toast('已切換到' + LV_NAMES[l]);
 }
-function isUnlocked(l) { return !!WORDS[l]; }
-function getActiveLv() { return getPickedLv(); }
-
 // ── 課次（學習量驅動，與日曆無關）──
 function getDaysForLv(l) {
   var bank = WORDS[l] || [];
@@ -5696,19 +5693,6 @@ function reloadVoices() {
   }, 250);
 }
 
-function renderTtsVoiceUI() {
-  var sel = document.getElementById('tts-voice-sel');
-  if (!sel) return;
-  var cur = ttsVoice();
-  sel.innerHTML = '';
-  TTS_VOICES.forEach(function(v){
-    var o = document.createElement('option');
-    o.value = v.id; o.textContent = v.name;
-    if (v.id === cur) o.selected = true;
-    sel.appendChild(o);
-  });
-}
-
 function renderVoiceUI() {
   var sel = document.getElementById('voice-sel');
   if (!sel) return;
@@ -5800,25 +5784,6 @@ function ttsDB() {
     rq.onerror = function(){ rej(rq.error); };
   });
 }
-function ttsGet(key) {
-  return ttsDB().then(function(db){
-    return new Promise(function(res){
-      var r = db.transaction('audio').objectStore('audio').get(key);
-      r.onsuccess = function(){ res(r.result || null); };
-      r.onerror = function(){ res(null); };
-    });
-  }).catch(function(){ return null; });
-}
-function ttsPut(key, blob) {
-  return ttsDB().then(function(db){
-    return new Promise(function(res){
-      var tx = db.transaction('audio', 'readwrite');
-      tx.objectStore('audio').put(blob, key);
-      tx.oncomplete = function(){ res(true); };
-      tx.onerror = function(){ res(false); };
-    });
-  }).catch(function(){ return false; });
-}
 function ttsStats() {
   return ttsDB().then(function(db){
     return new Promise(function(res){
@@ -5835,219 +5800,8 @@ function ttsStats() {
     });
   }).catch(function(){ return { n: 0, bytes: 0 }; });
 }
-function ttsClear() {
-  ttsDB().then(function(db){
-    var tx = db.transaction('audio', 'readwrite');
-    tx.objectStore('audio').clear();
-    tx.oncomplete = function(){ _ttsCache = {}; renderHdCache(); toast('已清除真人發音快取'); };
-  }).catch(function(){ toast('清除失敗'); });
-}
-
-// 只取音訊，不播放。給預先下載與播放共用
-function fetchHD(text) {
-  var key = ttsVoice() + '|' + text;
-  if (_ttsCache[key]) return Promise.resolve(_ttsCache[key]);
-  return ttsGet(key).then(function(blob){
-    if (blob) { var u = URL.createObjectURL(blob); _ttsCache[key] = u; return u; }
-    if (!hasApiKey()) return Promise.reject(new Error('NO_KEY'));
-    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-    var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 25000);
-    bumpApiUsage(TTS_MODEL, 'req');
-    return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + TTS_MODEL + ':generateContent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(S.apiKey || '').trim() },
-      signal: ctrl ? ctrl.signal : undefined,
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: text }] }],
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ttsVoice() } } }
-        }
-      })
-    }).then(function(r){
-      clearTimeout(timer);
-      if (!r.ok) return r.text().then(function(t){ throw new Error(r.status + ' ' + t.slice(0, 100)); });
-      return r.json();
-    }).then(function(d){
-      var part = ((((d.candidates || [])[0] || {}).content || {}).parts || [])[0] || {};
-      var inl = part.inlineData || part.inline_data;
-      if (!inl || !inl.data) throw new Error('沒有取得音訊');
-      var mime = inl.mimeType || inl.mime_type || '';
-      var rate = parseInt((mime.match(/rate=(\d+)/) || [])[1] || 24000);
-      var bin = atob(inl.data), arr = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-      var b = pcmToWav(arr, rate);
-      bumpApiUsage(TTS_MODEL, 'ok');
-      ttsPut(key, b);
-      var url = URL.createObjectURL(b);
-      _ttsCache[key] = url;
-      return url;
-    });
-  });
-}
-
-// 依靜音把一整段語音切成一個一個字
-function splitBySilence(int16, rate, want) {
-  var win = Math.round(rate * 0.02), lv = [], i, j;
-  for (i = 0; i + win < int16.length; i += win) {
-    var mx = 0;
-    for (j = i; j < i + win; j++) { var v = int16[j] < 0 ? -int16[j] : int16[j]; if (v > mx) mx = v; }
-    lv.push(mx);
-  }
-  var peak = 0;
-  for (i = 0; i < lv.length; i++) if (lv[i] > peak) peak = lv[i];
-  if (!peak) return null;
-  var thr = peak * 0.02;
-
-  function gapsAtLeast(minWins) {
-    var runs = [], cur = null, k;
-    for (k = 0; k < lv.length; k++) {
-      if (lv[k] < thr) { if (cur === null) cur = k; }
-      else { if (cur !== null) { if (k - cur >= minWins) runs.push([cur, k]); cur = null; } }
-    }
-    if (cur !== null && lv.length - cur >= minWins) runs.push([cur, lv.length]);
-    return runs.filter(function(r){ return r[0] > 7 && r[1] < lv.length - 7; });
-  }
-
-  // 短句的分隔靜音短、長句中間也會有小停頓，所以逐步加大門檻直到段數剛好對上
-  var inner = null;
-  var tries = [17, 25, 35, 45, 60, 80];   // 0.34 / 0.5 / 0.7 / 0.9 / 1.2 / 1.6 秒
-  for (i = 0; i < tries.length; i++) {
-    var g = gapsAtLeast(tries[i]);
-    if (g.length === want - 1) { inner = g; break; }
-    if (g.length < want - 1) break;       // 再放寬也只會更少
-  }
-  if (!inner) return null;
-
-  // 切在靜音的邊緣，不要把整段空白也留著
-  var starts = [0], ends = [];
-  inner.forEach(function(r){ ends.push(r[0]); starts.push(r[1]); });
-  ends.push(lv.length);
-  var pad = Math.round(rate * 0.06);
-  var out = [];
-  for (i = 0; i < want; i++) {
-    var a0 = starts[i], b0 = ends[i];
-    while (a0 < b0 && lv[a0] < thr) a0++;
-    while (b0 > a0 && lv[b0 - 1] < thr) b0--;
-    if (b0 <= a0) { a0 = starts[i]; b0 = ends[i]; }
-    var a = Math.max(0, a0 * win - pad);
-    var b = Math.min(int16.length, b0 * win + pad);
-    out.push(int16.subarray(a, b));
-  }
-  return out;
-}
-function int16ToWav(seg, rate) {
-  var bytes = new Uint8Array(seg.buffer, seg.byteOffset, seg.length * 2);
-  return pcmToWav(bytes, rate);
-}
-
-// 一次請求念完整批文字，切開後各自存進快取。省下 N-1 次額度。
-function fetchHDBatch(list) {
-  if (!hasApiKey()) return Promise.reject(new Error('NO_KEY'));
-  var prompt = 'Read each item clearly with a full one second pause between them. '
-             + 'Do not add any extra words.\n' + list.join('\n');
-  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-  var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 90000);
-  bumpApiUsage(TTS_MODEL, 'req');
-  return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + TTS_MODEL + ':generateContent', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(S.apiKey || '').trim() },
-    signal: ctrl ? ctrl.signal : undefined,
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseModalities: ['AUDIO'],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ttsVoice() } } }
-      }
-    })
-  }).then(function(r){
-    clearTimeout(timer);
-    if (!r.ok) return r.text().then(function(t){ throw new Error(r.status + ' ' + t.slice(0, 100)); });
-    return r.json();
-  }).then(function(d){
-    var part = ((((d.candidates || [])[0] || {}).content || {}).parts || [])[0] || {};
-    var inl = part.inlineData || part.inline_data;
-    if (!inl || !inl.data) throw new Error('沒有取得音訊');
-    var mime = inl.mimeType || inl.mime_type || '';
-    var rate = parseInt((mime.match(/rate=(\d+)/) || [])[1] || 24000);
-    var bin = atob(inl.data), arr = new Uint8Array(bin.length), i;
-    for (i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    var int16 = new Int16Array(arr.buffer, 0, Math.floor(arr.length / 2));
-    var segs = splitBySilence(int16, rate, list.length);
-    if (!segs) throw new Error('SPLIT_FAIL');
-    bumpApiUsage(TTS_MODEL, 'ok');
-    var jobs = segs.map(function(seg, k){
-      var blob = int16ToWav(seg, rate);
-      var key = ttsVoice() + '|' + list[k];
-      _ttsCache[key] = URL.createObjectURL(blob);
-      return ttsPut(key, blob);
-    });
-    return Promise.all(jobs).then(function(){ return segs.length; });
-  });
-}
-
 // 把今天這一課的單字（與例句）一次抓好，之後就完全不用再花額度
 var _preBusy = false;
-function prefetchLesson(withExamples) {
-  if (_preBusy) { toast('已經在下載了'); return; }
-  if (!hasApiKey()) { toast('需要先在設定頁填入 API Key'); return; }
-  var list = [];
-  (todayWords || []).forEach(function(w){
-    list.push(w[0]);
-    if (withExamples) list.push(w[4]);
-  });
-  if (!list.length) { toast('今天沒有要下載的內容'); return; }
-  _preBusy = true;
-  var bar = document.getElementById('hd-pre-bar');
-  var fill = document.getElementById('hd-pre-fill');
-  var txt = document.getElementById('hd-pre-txt');
-  if (bar) bar.style.display = 'flex';
-  var i = 0, okN = 0, failN = 0;
-
-  // 先試著一次抓完（只花 1 次額度）；只有單字、且沒抓過的才批次
-  var todo = list.filter(function(t){ return !_ttsCache[ttsVoice() + '|' + t]; });
-  var allShort = todo.length >= 2 && todo.length <= 12;
-  if (allShort) {
-    if (txt) txt.textContent = '一次下載中…（只花 1 次額度）';
-    if (fill) fill.style.width = '30%';
-    fetchHDBatch(todo).then(function(n){
-      _preBusy = false;
-      if (fill) fill.style.width = '100%';
-      if (txt) txt.textContent = '完成：' + n + ' 個字，只用了 1 次額度';
-      renderHdCache();
-      toast('這一課的發音都下載好了，只花了 1 次額度');
-    }).catch(function(e){
-      var m = String(e && e.message || e);
-      if (m.indexOf('429') >= 0) {
-        _preBusy = false; markQuotaUsedUp(TTS_MODEL);
-        if (txt) txt.textContent = '今天額度用完了';
-        toast('今天的額度用完了，明天再試');
-        return;
-      }
-      if (txt) txt.textContent = '一次下載沒成功，改成一個一個抓…';
-      step();     // 退回逐字下載
-    });
-    return;
-  }
-
-  function step() {
-    if (i >= list.length) {
-      _preBusy = false;
-      if (txt) txt.textContent = '完成：成功 ' + okN + ' 個' + (failN ? '，失敗 ' + failN + ' 個' : '');
-      if (fill) fill.style.width = '100%';
-      renderHdCache();
-      toast(failN ? ('下載完成，' + failN + ' 個失敗（多半是額度用完）') : '這一課的發音都下載好了');
-      return;
-    }
-    var t = list[i];
-    if (txt) txt.textContent = (i + 1) + ' / ' + list.length + '　' + t.slice(0, 22);
-    if (fill) fill.style.width = Math.round(i / list.length * 100) + '%';
-    fetchHD(t).then(function(){ okN++; }).catch(function(){ failN++; })
-      .then(function(){ i++; setTimeout(step, 300); });
-  }
-  step();
-}
-
 function renderHdCache() {
   var el = document.getElementById('hd-cache');
   if (!el) return;
@@ -6090,21 +5844,6 @@ function ttsVoice() {
   var v = S.g('de_tts_voice', 'Kore');
   return TTS_VOICES.filter(function(x){ return x.id === v; }).length ? v : 'Kore';
 }
-function setTtsVoice(v) { S.s('de_tts_voice', v); _ttsCache = {}; toast('真人發音已改用 ' + v); }
-
-// 把 16-bit PCM 包成瀏覽器能播的 WAV
-function pcmToWav(bytes, rate) {
-  var n = bytes.length, buf = new ArrayBuffer(44 + n), dv = new DataView(buf);
-  function str(o, t){ for (var i = 0; i < t.length; i++) dv.setUint8(o + i, t.charCodeAt(i)); }
-  str(0, 'RIFF'); dv.setUint32(4, 36 + n, true); str(8, 'WAVE');
-  str(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
-  dv.setUint16(22, 1, true); dv.setUint32(24, rate, true);
-  dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
-  str(36, 'data'); dv.setUint32(40, n, true);
-  new Uint8Array(buf, 44).set(bytes);
-  return new Blob([buf], { type: 'audio/wav' });
-}
-
 // ── 內建發音包：跟 App 一起放在網站上，不需要金鑰也不消耗額度 ──
 var _packIndex = null;      // { 單字: 檔名 }
 var _packTried = false;
@@ -6121,12 +5860,24 @@ function packUrl(text) {
   var fn = _packIndex[text];
   return fn ? ('./audio/' + fn) : null;
 }
-// 這個字有沒有內建發音（同步版，給已載入清單後使用）
-function hasPack(text) { return !!packUrl(text); }
-
 // 預抓接下來幾課的發音，存進 Service Worker 用的同一個快取。
 // 其餘課程不預抓，播到的時候才下載，下載後就永久留著。
 var AUDIO_CACHE_NAME = 'daily-english-audio';
+// 抓過的音檔本來永遠留著，上到第 200 課會累積上百 MB。
+// iOS 在空間不足時是「整個網站的資料一起清掉」，連學習進度都會沒有，
+// 所以限制數量，超過就刪最舊的（Cache API 的 keys 是依寫入順序）。
+var AUDIO_CACHE_MAX = 600;
+function trimAudioCache() {
+  if (!window.caches) return Promise.resolve();
+  return caches.open(AUDIO_CACHE_NAME).then(function(cache){
+    return cache.keys().then(function(keys){
+      var extra = keys.length - AUDIO_CACHE_MAX;
+      if (extra <= 0) return 0;
+      return Promise.all(keys.slice(0, extra).map(function(k){ return cache.delete(k); }))
+        .then(function(){ return extra; });
+    });
+  }).catch(function(){ return 0; });
+}
 var _prefetchedUpTo = {};
 var PREFETCH_LESSONS = 5;
 
@@ -6168,7 +5919,7 @@ function prefetchLessons() {
     var ws = [];
     for (var k = 0; k < Math.min(3, urls.length); k++) ws.push(worker());
     return Promise.all(ws);
-  }).catch(function(){});
+  }).then(trimAudioCache).catch(function(){});
 }
 
 // 把 IndexedDB 裡自己下載過的發音載入記憶體（_ttsCache），點擊時才能同步播放
@@ -6207,17 +5958,6 @@ function hdFirst() {
   if (_speechWorks === false) return true;
   return S.g('de_hd_first', true) !== false;
 }
-function setHdFirst(v) {
-  if (_speechWorks === false && !v) {
-    toast('你的手機語音沒有反應，關掉會完全沒聲音，所以維持開啟');
-    return;
-  }
-  S.s('de_hd_first', !!v);
-  var el = document.getElementById('hd-first-btn');
-  if (el) el.textContent = hdFirst() ? '✓ 已開啟' : '✗ 已關閉';
-  toast(hdFirst() ? '課程內容優先用內建發音' : '一律使用手機語音');
-}
-
 // 播放順序：內建發音包 → 自己下載過的 → 手機內建語音
 function speakAuto(text, rate) {
   if (!text) return;
@@ -6269,75 +6009,6 @@ function checkVoiceSource(btn) {
     }).catch(function(){});
   }
 }
-
-// 診斷：直接告訴使用者真人發音為什麼不動
-function diagnoseHD() {
-  var box = document.getElementById('hd-diag');
-  if (!box) return;
-  var lines = [];
-  function show() { box.innerHTML = ''; lines.forEach(function(t){
-    var d = document.createElement('div'); d.textContent = t; box.appendChild(d); }); }
-  lines.push('1. API Key：' + (hasApiKey() ? '已設定 ✓' : '沒有設定 ✗ ← 真人發音需要它'));
-  lines.push('2. 瀏覽器儲存：' + (window.indexedDB ? '可用 ✓' : '不支援 ✗'));
-  var q = quotaMap();
-  lines.push('3. 今日額度：' + (q[TTS_MODEL] === ptDate() ? '已用完 ✗（明天恢復）' : '還可以用 ✓'));
-  lines.push('4. 目前聲音：' + ttsVoice());
-  lines.push('5. 正在測試連線…');
-  show();
-  if (!hasApiKey()) { lines[4] = '5. 沒有 API Key，無法測試連線'; show(); return; }
-  var t0 = Date.now();
-  fetchHD('test').then(function(url){
-    lines[4] = '5. 連線測試：成功 ✓（' + ((Date.now() - t0) / 1000).toFixed(1) + ' 秒）';
-    lines.push('6. 播放測試中…');
-    show();
-    var a = new Audio(url);
-    a.onloadedmetadata = function(){ lines[5] = '6. 播放測試：成功 ✓（音訊 ' + a.duration.toFixed(2) + ' 秒）'; show(); a.play(); };
-    a.onerror = function(){ lines[5] = '6. 播放測試：失敗 ✗ 這台裝置可能不支援 WAV 播放'; show(); };
-  }).catch(function(e){
-    var m = String(e && e.message || e);
-    lines[4] = '5. 連線測試：失敗 ✗　' + m.slice(0, 120);
-    if (m.indexOf('429') >= 0) lines.push('→ 今天的額度用完了，明天再試');
-    else if (m.indexOf('403') >= 0 || m.indexOf('401') >= 0) lines.push('→ API Key 無效或沒有權限，請重新產生一把');
-    else if (m.indexOf('404') >= 0) lines.push('→ 這把金鑰用不了語音模型');
-    else if (m.indexOf('NO_KEY') >= 0) lines.push('→ 請先填入 API Key');
-    else lines.push('→ 可能是網路問題，換個網路再試一次');
-    show();
-  });
-}
-
-function speakHD(text, btn) {
-  if (!text) return;
-  var pu0 = packUrl(text);
-  if (pu0) { if (playStored(text, packRate())) return; }
-  if (_ttsBusy) { toast('上一個還在產生中，等一下'); return; }
-  var key = ttsVoice() + '|' + text;
-  if (_ttsCache[key]) { if (playStored(text, packRate())) return; }
-  // 沒有 API Key 就沒辦法產生真人發音，但按了喇叭一定要有聲音：先用裝置語音念
-  if (!hasApiKey()) {
-    speak(text);
-    toast('這個字還沒有真人發音，先用手機的聲音念');
-    return;
-  }
-  // 有 Key：先用裝置語音念一次（保證按下去有聲音），同時在背景下載，下次就是真人發音
-  speak(text);
-  _ttsBusy = true;
-  var old = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = '產生中…'; }
-  function done(msg) {
-    _ttsBusy = false;
-    if (btn) { btn.disabled = false; btn.textContent = old; }
-    if (msg) toast(msg);
-  }
-  fetchHD(text).then(function(url){
-    renderHdCache();
-    done('真人發音下載好了，再按一次就能聽');
-  }).catch(function(e){
-    var m = String(e && e.message || e);
-    if (m.indexOf('429') >= 0) { markQuotaUsedUp(TTS_MODEL); done('今天的真人發音額度用完了，明天再試'); }
-    else { done('真人發音下載失敗，先用手機的聲音'); }
-  });
-}
-
 
 function getBestVoice(lang) {
   var pick = savedVoice();
@@ -7344,7 +7015,6 @@ function renderProg() {
   renderBadges();
   renderApiUsage();
   renderVoiceUI();
-  renderTtsVoiceUI();
   renderHdCache();
   var hf = document.getElementById('hd-first-btn');
   if (hf) hf.textContent = hdFirst() ? '✓ 已開啟' : '✗ 已關閉';
@@ -10089,54 +9759,11 @@ function renderClass() {
     body.appendChild(ul);
     para('答錯不用緊張，錯的會自動排進複習，之後還會再遇到。');
 
-    // 這一課的真人發音狀態
     var hdBox = document.createElement('div');
     hdBox.className = 'hd-note';
     hdBox.style.marginTop = '10px';
-    hdBox.id = 'cls-hd-box';
+    hdBox.textContent = '🎧 這一課的發音都已內建在 App 裡，不用網路也不用金鑰。';
     body.appendChild(hdBox);
-    (function(){
-      var ws = cState.words.map(function(w){ return w[0]; });
-      Promise.all(ws.map(function(t){
-        return hasPack(t) ? Promise.resolve(true) : ttsGet(ttsVoice() + '|' + t);
-      })).then(function(rs){
-        var have = rs.filter(function(x){ return !!x; }).length;
-        var packN = ws.filter(hasPack).length;
-        hdBox.innerHTML = '';
-        if (have >= ws.length) {
-          hdBox.textContent = packN >= ws.length
-            ? '🎧 這一課的發音已內建在 App 裡，不用網路也不用額度。'
-            : '🎧 這一課的真人發音已經下載好了，離線也能聽。';
-          return;
-        }
-        var t1 = document.createElement('div');
-        t1.textContent = '🎧 這一課有 ' + (ws.length - have) + ' 個字還沒有真人發音（現在會用手機內建的聲音念）。';
-        hdBox.appendChild(t1);
-        if (hasApiKey()) {
-          var b = document.createElement('button');
-          b.className = 'hd-btn';
-          b.style.marginTop = '6px';
-          b.textContent = '⬇️ 下載這課發音（只花 1 次額度）';
-          b.onclick = function(){
-            b.disabled = true; b.textContent = '下載中…';
-            fetchHDBatch(ws.filter(function(t, i){ return !rs[i]; })).then(function(n){
-              hdBox.textContent = '🎧 下載完成，這一課的 ' + n + ' 個字都有真人發音了。';
-              toast('下載完成，只花了 1 次額度');
-            }).catch(function(e){
-              b.disabled = false; b.textContent = '⬇️ 再試一次';
-              var m = String(e && e.message || e);
-              toast(m.indexOf('429') >= 0 ? '今天的額度用完了，明天再試' : '下載失敗，先用手機內建聲音上課');
-            });
-          };
-          hdBox.appendChild(b);
-        } else {
-          var t2 = document.createElement('div');
-          t2.style.marginTop = '4px';
-          t2.textContent = '想用真人發音的話，先到「進度 → 設定」填入 API Key。';
-          hdBox.appendChild(t2);
-        }
-      });
-    })();
 
     nextBtn('開始上課');
     return;

@@ -3,9 +3,24 @@
    - 圖示／字型：快取優先
    - Gemini API：一律走網路，不快取
    改版時把 CACHE 的版本號 +1，舊快取會在啟用時清掉。 */
-var CACHE = 'daily-english-v49';
+var CACHE = 'daily-english-v50';
 // 發音包放在不帶版本號的快取，改版時不會被清掉、也不用重抓
 var AUDIO_CACHE = 'daily-english-audio';
+// 音檔快取的數量上限。不設限的話手機會累積上百 MB，
+// iOS 在空間不足時會把整個網站的資料（含學習進度）一起清掉。
+var AUDIO_CACHE_MAX = 600;
+var _trimming = false;
+function trimAudioCache() {
+  if (_trimming) return Promise.resolve();
+  _trimming = true;
+  return caches.open(AUDIO_CACHE).then(function(c){
+    return c.keys().then(function(keys){
+      var extra = keys.length - AUDIO_CACHE_MAX;
+      if (extra <= 0) return;
+      return Promise.all(keys.slice(0, extra).map(function(k){ return c.delete(k); }));
+    });
+  }).catch(function(){}).then(function(){ _trimming = false; });
+}
 var ENTRY = './index.html';          // 部署入口檔名
 var CORE_REQUIRED = ['./', ENTRY];   // 缺這兩個就沒有離線可言
 var CORE_OPTIONAL = [
@@ -62,7 +77,7 @@ self.addEventListener('activate', function(e) {
           }));
         });
       }).catch(function(){});
-    }).then(function() { return self.clients.claim(); })
+    }).then(trimAudioCache).then(function() { return self.clients.claim(); })
   );
 });
 
@@ -123,7 +138,9 @@ self.addEventListener('fetch', function(e) {
       return fetch(req).then(function(res) {
         if (res && (res.ok || res.type === 'opaque')) {
           var copy = res.clone();
-          caches.open(isAudio ? AUDIO_CACHE : CACHE).then(function(c) { c.put(req, copy); });
+          caches.open(isAudio ? AUDIO_CACHE : CACHE).then(function(c) {
+            return c.put(req, copy);
+          }).then(function(){ if (isAudio) return trimAudioCache(); });
         }
         return res;
       }).catch(function() { return hit; });
