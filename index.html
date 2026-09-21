@@ -255,6 +255,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .cls-sec .zh{font-size:12px;color:var(--t2);margin-top:3px;line-height:1.7}
 .cls-sec .plain{font-size:13px;color:var(--t2);line-height:1.8}
 .cls-spk{float:right;cursor:pointer;font-size:16px;margin-left:8px}
+    .shadow-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+    .shadow-row{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--bg2);transition:border-color .15s,background .15s}
+    .shadow-row.on{border-color:var(--green);background:var(--gl)}
+    .shadow-en{font-size:15px;line-height:1.5;font-family:var(--serif)}
+    .shadow-zh{font-size:12px;color:var(--t3);margin-top:3px}
+    .shadow-btns{display:flex;gap:6px;margin-top:7px}
+    .cls-spk-btn{padding:5px 11px;border-radius:99px;background:var(--gl);border:1px solid var(--gb);
+      color:var(--green);font-size:12px;cursor:pointer;font-family:var(--sans)}
     .q-spk{display:inline-flex;align-items:center;gap:5px;margin:-2px 0 10px;padding:6px 13px;
       border-radius:99px;background:var(--gl);border:1px solid var(--gb);color:var(--green);
       font-size:12px;cursor:pointer;font-family:var(--sans)}
@@ -5496,6 +5504,9 @@ var _playerText = '';
 var _playerRate = null;
 
 var _queue = [];      // 還沒播的音檔（多益 Part 2 會一次排四段）
+var _shadowGap = false;   // true：每句播完留白給使用者跟著唸
+var _onQueueEnd = null;   // 整串播完後要做的事
+var _onQueueNext = null;  // 每換一句時通知畫面
 
 function audioPlayer() {
   if (_player) return _player;
@@ -5503,7 +5514,10 @@ function audioPlayer() {
   // 監聽器只掛這一次。掛在每次播放裡的話會一直累積，
   // 播完一個單字也會誤觸別人的序列。
   _player.addEventListener('ended', function(){
-    if (_queue.length) setTimeout(playNext, 550);
+    if (!_queue.length) { if (_onQueueEnd) { var f = _onQueueEnd; _onQueueEnd = null; f(); } return; }
+    // 跟讀模式：留和這句差不多長的空白，讓使用者跟著唸一次
+    var gap = _shadowGap ? Math.min(7000, (_player.duration || 2) * 1000 * 1.15 + 500) : 550;
+    setTimeout(playNext, gap);
   });
   _player.addEventListener('error', function(){
     _queue = [];
@@ -5515,7 +5529,8 @@ function audioPlayer() {
 
 function playNext() {
   var url = _queue.shift();
-  if (!url) return;
+  if (!url) { if (_onQueueEnd) { var f = _onQueueEnd; _onQueueEnd = null; f(); } return; }
+  if (_onQueueNext) _onQueueNext(url);
   var a = audioPlayer();
   var r = packRate();
   a.defaultPlaybackRate = r;
@@ -5551,8 +5566,29 @@ function playStored(text, rate) {
 function playSequence(urls) {
   audioPlayer();
   _playerText = '';
+  _shadowGap = false;
+  _onQueueEnd = null; _onQueueNext = null;
   _queue = urls.slice();
   playNext();
+}
+
+// 跟讀：一句一句播，每句之間留白讓使用者跟著唸
+function playShadow(urls, onNext, onEnd) {
+  audioPlayer();
+  _playerText = '';
+  _shadowGap = true;
+  _onQueueNext = onNext || null;
+  _onQueueEnd = function(){ _shadowGap = false; _onQueueNext = null; if (onEnd) onEnd(); };
+  _queue = urls.slice();
+  playNext();
+}
+
+function stopShadow() {
+  _queue = [];
+  _shadowGap = false;
+  _onQueueNext = null;
+  _onQueueEnd = null;
+  if (_player) { try { _player.pause(); } catch (e) {} }
 }
 
 // 單字卡上的快捷：一鍵放慢重念
@@ -9645,6 +9681,7 @@ function buildClassSteps() {
     }
   });
 
+  steps.push({ type: 'shadow', words: words });
   steps.push({ type: 'summary' });
   return { steps: steps, words: words, grammar: L, theme: classTheme(words) };
 }
@@ -9686,6 +9723,7 @@ function canGoBack() {
 }
 
 function classPrev() {
+  try { stopShadow(); } catch (e) {}
   if (!canGoBack()) return;
   cState.idx--;
   cState.answered = false;
@@ -9962,7 +10000,74 @@ function renderClass() {
     return;
   }
 
-  if (st.type === 'summary') {
+  if (st.type === 'shadow') {
+    phase('開口練習');
+    head('跟著唸一次');
+    para('聽一句、跟著唸一句。重點不是唸得完美，是跟上它的節奏和語調。');
+
+    var list = document.createElement('div');
+    list.className = 'shadow-list';
+    var rows = [];
+    st.words.forEach(function(w, i){
+      var row = document.createElement('div');
+      row.className = 'shadow-row';
+      var en = document.createElement('div');
+      en.className = 'shadow-en';
+      en.textContent = w[4];
+      var zh = document.createElement('div');
+      zh.className = 'shadow-zh';
+      zh.textContent = w[5] || '';
+      var btns = document.createElement('div');
+      btns.className = 'shadow-btns';
+      var b1 = document.createElement('button');
+      b1.className = 'cls-spk-btn'; b1.textContent = '🔊 播放';
+      b1.onclick = (function(t){ return function(){ stopShadow(); speakAuto(t); }; })(w[4]);
+      var b2 = document.createElement('button');
+      b2.className = 'cls-spk-btn'; b2.textContent = '🐢 放慢';
+      b2.onclick = (function(t){ return function(){ stopShadow(); speakSlow(t); }; })(w[4]);
+      btns.appendChild(b1); btns.appendChild(b2);
+      row.appendChild(en); row.appendChild(zh); row.appendChild(btns);
+      list.appendChild(row);
+      rows.push(row);
+    });
+    body.appendChild(list);
+
+    var urls = st.words.map(function(w){ return packUrl(w[4]); });
+    var runBtn = document.createElement('button');
+    runBtn.className = 'cls-btn';
+    runBtn.style.marginTop = '10px';
+    runBtn.textContent = '▶ 開始跟讀（自動播放 ' + st.words.length + ' 句）';
+    var running = false;
+    runBtn.onclick = function(){
+      if (running) {
+        stopShadow();
+        running = false;
+        rows.forEach(function(r){ r.classList.remove('on'); });
+        runBtn.textContent = '▶ 開始跟讀（自動播放 ' + st.words.length + ' 句）';
+        return;
+      }
+      if (urls.some(function(u){ return !u; })) { speakAuto(st.words[0][4]); return; }
+      running = true;
+      runBtn.textContent = '⏹ 停止';
+      playShadow(urls, function(u){
+        var i = urls.indexOf(u);
+        rows.forEach(function(r, k){ r.classList.toggle('on', k === i); });
+      }, function(){
+        running = false;
+        rows.forEach(function(r){ r.classList.remove('on'); });
+        runBtn.textContent = '↻ 再跟讀一次';
+      });
+    };
+    body.appendChild(runBtn);
+
+    var tip = document.createElement('div');
+    tip.className = 'hd-note';
+    tip.style.marginTop = '10px';
+    tip.textContent = '每句播完會留一段空白，就是你開口的時間。跟不上就先按「🐢 放慢」。';
+    body.appendChild(tip);
+
+    nextBtn('念完了', function(){ stopShadow(); classNext(); });
+  } else if (st.type === 'summary') {
     var total = cState.words.length;
     var quizTotal = cState.steps.filter(function(x){ return x.type === 'quiz'; }).length;
     phase('今天上完了');
